@@ -1,0 +1,49 @@
+    Checking tauri-appwx-markdown2html v0.1.0 (C:\Users\xuzhougeng\code\ai\wx_markdown2html\src-tauri)
+warning: unused import: `css_inline::CSSInliner`
+ --> src\lib.rs:2:5
+  |
+2 | use css_inline::CSSInliner;
+  |     ^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+error[E0164]: expected tuple struct or tuple variant, found struct variant `Tag::Image`
+  --> src\lib.rs:18:22
+   |
+18 |         Event::Start(Tag::Image(link_type, dest, title, id)) => {
+   |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not a tuple struct or tuple variant
+   |
+help: the struct variant's fields are being ignored
+   |
+18 -         Event::Start(Tag::Image(link_type, dest, title, id)) => {
+18 +         Event::Start(Tag::Image { link_type: _, dest_url: _, title: _, id: _ }) => {
+   |
+
+error[E0533]: expected value, found struct variant `Tag::Image`
+  --> src\lib.rs:22:41
+   |
+22 |                     return Event::Start(Tag::Image(link_type, Cow::Owned(new_dest), title, id));
+   |                                         ^^^^^^^^^^ not a value
+   |
+help: you might have meant to create a new value of the struct
+   |
+22 -                     return Event::Start(Tag::Image(link_type, Cow::Owned(new_dest), title, id));
+22 +                     return Event::Start(Tag::Image { link_type: /* value */, dest_url: /* value */, title: /* value */, id: /* value */ });
+   |
+
+error[E0533]: expected value, found struct variant `Tag::Image`
+  --> src\lib.rs:25:26
+   |
+25 |             Event::Start(Tag::Image(link_type, dest, title, id))
+   |                          ^^^^^^^^^^ not a value
+   |
+help: you might have meant to create a new value of the struct
+   |
+25 -             Event::Start(Tag::Image(link_type, dest, title, id))
+25 +             Event::Start(Tag::Image { link_type: /* value */, dest_url: /* value */, title: /* value */, id: /* value */ })
+   |
+
+Some errors have detailed explanations: E0164, E0533.
+For more information about an error, try `rustc --explain E0164`.
+warning: `tauri-appwx-markdown2html` (lib) generated 1 warning
+error: could not compile `tauri-appwx-markdown2html` (lib) due to 3 previous errors; 1 warning emitted

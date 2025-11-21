@@ -1,0 +1,134 @@
+/* Sakura Theme (Pink) */
+.wechat-content {
+    font-family: "Optima", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    color: #444;
+    word-wrap: break-word;
+}
+
+h1 {
+    font-size: 20px;
+    font-weight: bold;
+    margin-top: 24px;
+    margin-bottom: 16px;
+    text-align: center;
+    color: #e91e63;
+    background-image: linear-gradient(to right, transparent, #fce4ec, transparent);
+    padding: 10px 0;
+}
+
+h2 {
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 20px;
+    margin-bottom: 12px;
+    color: #d81b60;
+    border-bottom: 2px solid #f8bbd0;
+    display: inline-block;
+    padding-bottom: 4px;
+}
+
+h3 {
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 16px;
+    margin-bottom: 10px;
+    color: #c2185b;
+}
+
+p {
+    margin-bottom: 16px;
+    text-align: justify;
+}
+
+blockquote {
+    margin: 16px 0;
+    padding: 10px 16px;
+    background-color: #fff0f5;
+    border-left: 4px solid #f48fb1;
+    color: #880e4f;
+    font-size: 15px;
+    font-style: italic;
+}
+
+ul,
+ol {
+    margin-bottom: 16px;
+    padding-left: 24px;
+}
+
+li {
+    margin-bottom: 6px;
+}
+
+li::marker {
+    color: #e91e63;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 16px auto;
+    border-radius: 12px;
+    border: 4px solid #fce4ec;
+}
+
+code {
+    font-family: Consolas, Monaco, "Courier New", monospace;
+    background-color: #fce4ec;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #c2185b;
+}
+
+pre {
+    background-color: #f8f8f8;
+    padding: 16px;
+    overflow: auto;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    border: 1px solid #fce4ec;
+}
+
+pre code {
+    background-color: transparent;
+    padding: 0;
+    color: #333;
+    font-size: 13px;
+}
+
+a {
+    color: #e91e63;
+    text-decoration: none;
+    border-bottom: 1px solid #f48fb1;
+}
+
+a:hover {
+    background-color: #fce4ec;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+
+th,
+td {
+    border: 1px solid #f8bbd0;
+    padding: 8px 12px;
+}
+
+th {
+    background-color: #fce4ec;
+    color: #880e4f;
+    font-weight: bold;
+}
+
+tr:nth-child(2n) {
+    background-color: #fff9fb;
+}
