@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
-import { FileText, Save, Copy, Palette, Image, Upload, Sparkles, Settings } from 'lucide-react';
+import { FileText, Save, Copy, Palette, Image as IconImage, Upload, Sparkles, Settings } from 'lucide-react';
 import mermaid from "mermaid";
 import "./App.css";
 // @ts-ignore
@@ -25,7 +25,7 @@ type BuiltinThemeName = keyof typeof builtinThemes;
 let mermaidInitialized = false;
 function ensureMermaidInitialized() {
   if (!mermaidInitialized) {
-    mermaid.initialize({ startOnLoad: false, securityLevel: "loose" });
+    mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
     mermaidInitialized = true;
   }
 }
@@ -52,6 +52,52 @@ async function inlineMermaid(htmlString: string) {
     }
   }
   return "<!DOCTYPE html>" + doc.documentElement.outerHTML;
+}
+
+async function svgToPngBytes(svg: string): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    try {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width || 800;
+          canvas.height = img.height || 600;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            reject(new Error("无法获取 Canvas 上下文"));
+            return;
+          }
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              reject(new Error("Canvas 转换 PNG 失败"));
+              return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => {
+              const buffer = reader.result as ArrayBuffer;
+              resolve(new Uint8Array(buffer));
+            };
+            reader.onerror = () => {
+              reject(new Error("读取 PNG 数据失败"));
+            };
+            reader.readAsArrayBuffer(blob);
+          }, "image/png");
+        } catch (err) {
+          reject(err);
+        }
+      };
+      img.onerror = () => {
+        reject(new Error("SVG 图像加载失败"));
+      };
+      const svgBase64 = btoa(unescape(encodeURIComponent(svg)));
+      const dataUrl = `data:image/svg+xml;base64,${svgBase64}`;
+      img.src = dataUrl;
+    } catch (err) {
+      reject(err);
+    }
+  });
 }
 
 function applyImagePrefix(html: string, prefix: string): string {
@@ -108,7 +154,7 @@ hello("WeChat");
 
 ## Mermaid
 
-支持 Mermaid 语法, 注意用mermaid包裹
+支持 Mermaid 语法, 注意用mermaid包裹。但在上传到公众号前，需要先转换为图片。
 
 \`\`\`mermaid
 graph TD;
@@ -260,6 +306,12 @@ graph TD;
         return;
       }
 
+      if (markdown.includes("```mermaid")) {
+        alert("检测到 Mermaid 代码块，请先使用工具栏的“导出 Mermaid 图片”按钮，将 Mermaid 图保存为 PNG 并替换为图片后，再上传到公众号。");
+        appendDebugLog("上传公众号图片被阻止：检测到 Mermaid 代码块，请先将 Mermaid 导出为 PNG 图片。");
+        return;
+      }
+
       setIsUploadingWechatImages(true);
       appendDebugLog(`开始上传图片到公众号并替换 Markdown 中的图片链接，使用 APPID=${wechatAppId || "<未填写>"}。`);
 
@@ -378,6 +430,134 @@ graph TD;
     } catch (e) {
       console.error("Save markdown file failed", e);
       alert("保存 Markdown 文件失败");
+    }
+  };
+
+  const handleExportMermaidToPng = async () => {
+    try {
+      const isTauri = typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__;
+      if (!isTauri) {
+        alert("导出 Mermaid 图片仅在 Tauri 应用中可用。");
+        appendDebugLog("导出 Mermaid 图片失败：当前不在 Tauri 环境中。");
+        return;
+      }
+
+      const mermaidBlocks: string[] = [];
+      const re = /```mermaid([\s\S]*?)```/g;
+      let match: RegExpExecArray | null;
+      while ((match = re.exec(markdown)) !== null) {
+        const code = (match[1] || "").trim();
+        if (code) {
+          mermaidBlocks.push(code);
+        }
+      }
+
+      if (mermaidBlocks.length === 0) {
+        alert("当前文档中没有 Mermaid 代码块。");
+        appendDebugLog("导出 Mermaid 图片失败：未找到 Mermaid 代码块。");
+        return;
+      }
+
+      if (!currentFilePath) {
+        alert("请先保存 Markdown 文件，再导出 Mermaid 图片。");
+        appendDebugLog("导出 Mermaid 图片失败：当前文件尚未保存，无法确定图片目录。");
+        return;
+      }
+
+      const lastSepIndex = Math.max(
+        currentFilePath.lastIndexOf("\\"),
+        currentFilePath.lastIndexOf("/"),
+      );
+      const dir = lastSepIndex >= 0 ? currentFilePath.slice(0, lastSepIndex) : "";
+      const sep = currentFilePath.includes("\\") ? "\\" : "/";
+
+      ensureMermaidInitialized();
+
+      let newMarkdown = "";
+      let lastIndex = 0;
+      let blockIndex = 0;
+      const blockRegex = /```mermaid([\s\S]*?)```/g;
+      let m: RegExpExecArray | null;
+
+      while ((m = blockRegex.exec(markdown)) !== null) {
+        const matchStart = m.index;
+        const matchEnd = m.index + m[0].length;
+        const code = (m[1] || "").trim();
+
+        newMarkdown += markdown.slice(lastIndex, matchStart);
+
+        if (!code) {
+          newMarkdown += markdown.slice(matchStart, matchEnd);
+          lastIndex = matchEnd;
+          continue;
+        }
+
+        const id = `export-mermaid-${Date.now()}-${blockIndex}`;
+        const { svg } = await mermaid.render(id, code);
+        const pngBytes = await svgToPngBytes(svg);
+
+        const timestamp = Date.now();
+        const fileName = mermaidBlocks.length === 1
+          ? `${timestamp}.png`
+          : `${timestamp}-${blockIndex + 1}.png`;
+        const fullPath = dir ? `${dir}${sep}${fileName}` : fileName;
+
+        await invoke("save_binary_file", { path: fullPath, bytes: Array.from(pngBytes) });
+
+        const imageMarkdown = `![Mermaid 图](${fileName})`;
+        newMarkdown += imageMarkdown;
+
+        lastIndex = matchEnd;
+        blockIndex += 1;
+      }
+
+      newMarkdown += markdown.slice(lastIndex);
+      setMarkdown(newMarkdown);
+
+      alert(`Mermaid 图已导出为 PNG 并替换为图片引用（共 ${blockIndex} 个）。`);
+      appendDebugLog(`导出 Mermaid 图片并替换 Markdown 成功，数量: ${blockIndex}。`);
+    } catch (e) {
+      console.error("Export Mermaid to PNG failed", e);
+      appendDebugLog("导出 Mermaid 图片失败: " + String(e));
+      alert("导出 Mermaid 图片失败");
+    }
+  };
+
+  const handleLocalizeImages = async () => {
+    try {
+      const isTauri = typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__;
+      if (!isTauri) {
+        alert("一键本地化图片仅在 Tauri 应用中可用。");
+        appendDebugLog("一键本地化图片失败：当前不在 Tauri 环境中。");
+        return;
+      }
+
+      if (!currentFilePath) {
+        alert("请先保存 Markdown 文件，再进行本地化图片操作。");
+        appendDebugLog("一键本地化图片失败：当前文件尚未保存，无法确定 assets 目录。");
+        return;
+      }
+
+      let baseDir: string | null = null;
+      if (currentFilePath) {
+        baseDir = currentFilePath.replace(/[\\/][^\\/]*$/, "");
+      }
+
+      appendDebugLog("开始一键本地化图片：下载远程图片到 assets 并重写 Markdown 路径。");
+
+      const result = await invoke<string>("localize_images_to_assets", {
+        markdown,
+        baseDir,
+        sitePrefix,
+      });
+
+      setMarkdown(result);
+      appendDebugLog("一键本地化图片完成。");
+      alert("图片已本地化到 assets 目录并更新 Markdown 路径。");
+    } catch (e) {
+      console.error("Localize images failed", e);
+      appendDebugLog("一键本地化图片失败: " + String(e));
+      alert("一键本地化图片失败");
     }
   };
 
@@ -562,7 +742,7 @@ graph TD;
           </div>
 
           <div className="input-group">
-            <Image size={16} color="var(--text-secondary)" />
+            <IconImage size={16} color="var(--text-secondary)" />
             <input
               className="input"
               type="text"
@@ -588,11 +768,29 @@ graph TD;
 
           <button
             className="btn"
+            onClick={handleLocalizeImages}
+            title="下载远程图片到 assets 并重写 Markdown 路径"
+          >
+            <Upload size={16} />
+            一键本地化图片
+          </button>
+
+          <button
+            className="btn"
+            onClick={handleExportMermaidToPng}
+            title="将文中的 Mermaid 图导出为 PNG 图片"
+          >
+            <Upload size={16} />
+            导出 Mermaid 图片
+          </button>
+
+          <button
+            className="btn"
             onClick={handleUploadImagesToWechat}
             disabled={isUploadingWechatImages}
             title="Upload images to WeChat and replace URLs"
           >
-            <Image size={16} />
+            <IconImage size={16} />
             {isUploadingWechatImages ? "上传中..." : "上传图片到公众号"}
           </button>
 

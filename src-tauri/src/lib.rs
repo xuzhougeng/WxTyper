@@ -675,7 +675,24 @@ async fn wechat_upload_and_replace_images(
                 .filter(|s| !s.is_empty())
                 .unwrap_or("image.png")
                 .to_string();
-            (body.to_vec(), name)
+
+            let bytes_vec = body.to_vec();
+
+            if let Some(dir) = &base_dir_path {
+                let mut assets_dir = dir.clone();
+                assets_dir.push("assets");
+                if let Err(e) = std::fs::create_dir_all(&assets_dir) {
+                    eprintln!("创建 assets 目录失败 {}: {}", assets_dir.display(), e);
+                } else {
+                    let mut local_path = assets_dir.clone();
+                    local_path.push(&name);
+                    if let Err(e) = std::fs::write(&local_path, &bytes_vec) {
+                        eprintln!("保存下载图片到本地失败 {}: {}", local_path.display(), e);
+                    }
+                }
+            }
+
+            (bytes_vec, name)
         } else {
             // 先尝试作为本地路径读取
             let path = if let Some(dir) = &base_dir_path {
@@ -709,7 +726,24 @@ async fn wechat_upload_and_replace_images(
                                         .filter(|s| !s.is_empty())
                                         .unwrap_or("image.png")
                                         .to_string();
-                                    (body.to_vec(), name)
+
+                                    let bytes_vec = body.to_vec();
+
+                                    if let Some(dir) = &base_dir_path {
+                                        let mut assets_dir = dir.clone();
+                                        assets_dir.push("assets");
+                                        if let Err(e) = std::fs::create_dir_all(&assets_dir) {
+                                            eprintln!("创建 assets 目录失败 {}: {}", assets_dir.display(), e);
+                                        } else {
+                                            let mut local_path = assets_dir.clone();
+                                            local_path.push(&name);
+                                            if let Err(e) = std::fs::write(&local_path, &bytes_vec) {
+                                                eprintln!("保存下载图片到本地失败 {}: {}", local_path.display(), e);
+                                            }
+                                        }
+                                    }
+
+                                    (bytes_vec, name)
                                 }
                                 Ok(resp) => {
                                     return Err(format!(
@@ -808,6 +842,112 @@ async fn wechat_upload_and_replace_images(
         markdown: updated_markdown,
         items: result_entries,
     })
+}
+
+#[tauri::command]
+async fn localize_images_to_assets(
+    markdown: String,
+    baseDir: Option<String>,
+    sitePrefix: Option<String>,
+) -> Result<String, String> {
+    let base_dir_path = if let Some(dir) = baseDir {
+        PathBuf::from(dir)
+    } else {
+        return Err("当前文件尚未保存，无法确定 assets 目录".to_string());
+    };
+
+    let re = Regex::new(r"!\[[^\]]*]\(([^)]+)\)").map_err(|e| e.to_string())?;
+    let client = Client::new();
+
+    let mut url_map: HashMap<String, String> = HashMap::new();
+
+    for caps in re.captures_iter(&markdown) {
+        let url = if let Some(m) = caps.get(1) {
+            m.as_str().to_string()
+        } else {
+            continue;
+        };
+
+        if url_map.contains_key(&url) {
+            continue;
+        }
+
+        if url.starts_with("assets/") {
+            url_map.insert(url.clone(), url.clone());
+            continue;
+        }
+
+        let is_http = url.starts_with("http://") || url.starts_with("https://");
+
+        let mut bytes_opt: Option<Vec<u8>> = None;
+        let mut filename_opt: Option<String> = None;
+
+        if is_http {
+            let resp = client.get(&url).send().await.map_err(|e| e.to_string())?;
+            if !resp.status().is_success() {
+                return Err(format!("下载远程图片失败 {}: {}", url, resp.status()));
+            }
+            let body = resp.bytes().await.map_err(|e| e.to_string())?;
+            let name = url
+                .split('/')
+                .last()
+                .filter(|s| !s.is_empty())
+                .unwrap_or("image.png")
+                .to_string();
+            bytes_opt = Some(body.to_vec());
+            filename_opt = Some(name);
+        } else if let Some(prefix) = &sitePrefix {
+            let trimmed = prefix.trim();
+            if !trimmed.is_empty() {
+                let full_url = format!("{}{}", trimmed.trim_end_matches('/'), url);
+                let resp = client.get(&full_url).send().await.map_err(|e| e.to_string())?;
+                if !resp.status().is_success() {
+                    return Err(format!(
+                        "下载远程图片失败 {}: {}",
+                        full_url,
+                        resp.status()
+                    ));
+                }
+                let body = resp.bytes().await.map_err(|e| e.to_string())?;
+                let name = url
+                    .split('/')
+                    .last()
+                    .filter(|s| !s.is_empty())
+                    .unwrap_or("image.png")
+                    .to_string();
+                bytes_opt = Some(body.to_vec());
+                filename_opt = Some(name);
+            } else {
+                url_map.insert(url.clone(), url.clone());
+                continue;
+            }
+        } else {
+            url_map.insert(url.clone(), url.clone());
+            continue;
+        }
+
+        if let (Some(bytes), Some(filename)) = (bytes_opt, filename_opt) {
+            let mut assets_dir = base_dir_path.clone();
+            assets_dir.push("assets");
+            std::fs::create_dir_all(&assets_dir).map_err(|e| e.to_string())?;
+
+            let mut local_path = assets_dir.clone();
+            local_path.push(&filename);
+            std::fs::write(&local_path, &bytes).map_err(|e| e.to_string())?;
+
+            let new_url = format!("assets/{}", filename);
+            url_map.insert(url.clone(), new_url);
+        }
+    }
+
+    let mut updated = markdown.clone();
+    for (old, new_url) in url_map.into_iter() {
+        if old != new_url {
+            updated = updated.replace(&old, &new_url);
+        }
+    }
+
+    Ok(updated)
 }
 
 #[tauri::command]
@@ -919,6 +1059,11 @@ fn save_markdown_file(path: String, content: String) -> Result<(), String> {
     std::fs::write(&path, content).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn save_binary_file(path: String, bytes: Vec<u8>) -> Result<(), String> {
+    std::fs::write(&path, bytes).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -928,10 +1073,12 @@ pub fn run() {
             convert_markdown,
             open_markdown_file,
             save_markdown_file,
+            save_binary_file,
             generate_summary,
             wechat_upload_and_replace_images,
             test_openai_config,
-            test_wechat_access_token
+            test_wechat_access_token,
+            localize_images_to_assets
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
