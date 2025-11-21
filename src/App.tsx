@@ -1,7 +1,20 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open, save } from "@tauri-apps/plugin-dialog";
-import { FileText, Save, Copy, Palette, Image as IconImage, Upload, Sparkles, Settings } from 'lucide-react';
+import {
+  FileText,
+  Save,
+  Copy,
+  Palette,
+  Image as IconImage,
+  Upload,
+  Sparkles,
+  Settings,
+  Download,
+  Share,
+  FolderDown
+} from 'lucide-react';
 import mermaid from "mermaid";
 import "./App.css";
 // @ts-ignore
@@ -679,28 +692,27 @@ graph TD;
   return (
     <div id="root">
       <div className="toolbar">
-        <div className="toolbar-group">
+        <div className="toolbar-left">
           <div className="app-title">
             <FileText size={20} color="var(--primary)" />
-            <span>WxTyper</span>
+            <span className="app-name">WxTyper</span>
           </div>
-          <div className="input-group">
-            <button className="btn" onClick={handleOpenMarkdown} title="Open Markdown">
-              <FileText size={16} /> Open
-            </button>
-            <button className="btn" onClick={handleSaveMarkdown} title="Save Markdown">
-              <Save size={16} /> Save
-            </button>
-          </div>
+          <div className="divider-vertical"></div>
+          <button className="btn btn-icon" onClick={handleOpenMarkdown} title="Open Markdown">
+            <FileText size={18} />
+          </button>
+          <button className="btn btn-icon" onClick={handleSaveMarkdown} title="Save Markdown">
+            <Save size={18} />
+          </button>
         </div>
 
-        <div className="toolbar-group">
+        <div className="toolbar-center">
           <div className="input-group">
-            <Palette size={16} color="var(--text-secondary)" />
             <select
               className="select"
               value={currentTheme}
               onChange={(e) => setCurrentTheme(e.target.value)}
+              title="Select Theme"
             >
               {Object.keys(builtinThemes).map((themeName) => (
                 <option key={themeName} value={themeName}>
@@ -714,9 +726,9 @@ graph TD;
               )}
             </select>
           </div>
-
-          <div className="file-input-wrapper btn" title="Import CSS Theme">
-            <Upload size={16} />
+          
+          <div className="file-input-wrapper btn btn-icon" title="Import CSS Theme">
+            <Palette size={18} />
             <input
               type="file"
               accept=".css"
@@ -741,7 +753,7 @@ graph TD;
             />
           </div>
 
-          <div className="input-group">
+          <div className="input-group compact-input">
             <IconImage size={16} color="var(--text-secondary)" />
             <input
               className="input"
@@ -751,61 +763,60 @@ graph TD;
                 const value = e.target.value;
                 setImagePrefix(value);
               }}
-              placeholder="Image URL Prefix"
-              style={{ width: '180px' }}
+              placeholder="CDN Prefix"
             />
           </div>
+        </div>
 
+        <div className="toolbar-right">
           <button
-            className="btn"
+            className="btn btn-icon"
             onClick={handleGenerateSummary}
             disabled={isSummarizing}
             title="Generate AI Summary"
           >
-            <Sparkles size={16} />
-            {isSummarizing ? "生成中..." : "AI 摘要"}
+            <Sparkles size={18} color={isSummarizing ? "var(--primary)" : "currentColor"} />
           </button>
 
+          <div className="divider-vertical"></div>
+
           <button
-            className="btn"
+            className="btn btn-icon"
             onClick={handleLocalizeImages}
             title="下载远程图片到 assets 并重写 Markdown 路径"
           >
-            <Upload size={16} />
-            一键本地化图片
+            <FolderDown size={18} />
           </button>
 
           <button
-            className="btn"
+            className="btn btn-icon"
             onClick={handleExportMermaidToPng}
             title="将文中的 Mermaid 图导出为 PNG 图片"
           >
-            <Upload size={16} />
-            导出 Mermaid 图片
+            <Download size={18} />
           </button>
 
           <button
-            className="btn"
+            className="btn btn-icon"
             onClick={handleUploadImagesToWechat}
             disabled={isUploadingWechatImages}
             title="Upload images to WeChat and replace URLs"
           >
-            <IconImage size={16} />
-            {isUploadingWechatImages ? "上传中..." : "上传图片到公众号"}
+            <Share size={18} />
           </button>
 
-          <button className="btn btn-primary" onClick={copyToClipboard}>
-            <Copy size={16} />
-            Copy
+          <div className="divider-vertical"></div>
+
+          <button className="btn btn-primary btn-icon" onClick={copyToClipboard} title="Copy HTML">
+            <Copy size={18} />
           </button>
 
           <button
-            className={`btn ${activePage === "settings" ? "btn-primary" : ""}`}
+            className={`btn btn-icon ${activePage === "settings" ? "active" : ""}`}
             onClick={() => setActivePage(activePage === "settings" ? "editor" : "settings")}
             title="Settings"
           >
-            <Settings size={16} />
-            {activePage === "settings" ? "返回编辑" : "设置"}
+            <Settings size={18} />
           </button>
         </div>
       </div>
