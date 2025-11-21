@@ -95,6 +95,10 @@ hello("WeChat");
   }, []);
 
   useEffect(() => {
+    localStorage.setItem("imagePrefix", imagePrefix);
+  }, [imagePrefix]);
+
+  useEffect(() => {
     const convert = async () => {
       try {
         // @ts-ignore
@@ -269,7 +273,6 @@ hello("WeChat");
               onChange={(e) => {
                 const value = e.target.value;
                 setImagePrefix(value);
-                localStorage.setItem("imagePrefix", value);
               }}
               placeholder="Image URL Prefix"
               style={{ width: '180px' }}
