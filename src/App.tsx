@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
-import { FileText, Save, Copy, Palette, Image, Upload, Sparkles } from 'lucide-react';
+import { FileText, Save, Copy, Palette, Image, Upload, Sparkles, Settings } from 'lucide-react';
 import mermaid from "mermaid";
 import "./App.css";
 // @ts-ignore
@@ -79,6 +79,10 @@ function App() {
 
 这是一个 **微信公众号排版** 的 Markdown 示例，包含常见语法。
 
+图片
+
+![图片](/upload/2025/11/image-1763733455594.png)
+
 ## 列表
 
 - 无序列表项 1
@@ -135,6 +139,20 @@ graph TD;
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
   const [summary, setSummary] = useState("");
   const [isSummarizing, setIsSummarizing] = useState(false);
+  const [activePage, setActivePage] = useState<"editor" | "settings">("editor");
+  const [sitePrefix, setSitePrefix] = useState("");
+  const [openaiUrl, setOpenaiUrl] = useState("");
+  const [openaiToken, setOpenaiToken] = useState("");
+  const [openaiModel, setOpenaiModel] = useState("");
+  const [wechatAppId, setWechatAppId] = useState("");
+  const [wechatAppSecret, setWechatAppSecret] = useState("");
+  const [isUploadingWechatImages, setIsUploadingWechatImages] = useState(false);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const [openaiTestStatus, setOpenaiTestStatus] = useState("");
+  const [wechatTestStatus, setWechatTestStatus] = useState("");
+  const [isTestingOpenai, setIsTestingOpenai] = useState(false);
+  const [isTestingWechat, setIsTestingWechat] = useState(false);
+  const [settingsSaveStatus, setSettingsSaveStatus] = useState("");
   const previewRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
@@ -142,11 +160,59 @@ graph TD;
     if (storedPrefix) {
       setImagePrefix(storedPrefix);
     }
+    const storedSitePrefix = localStorage.getItem("sitePrefix");
+    if (storedSitePrefix) {
+      setSitePrefix(storedSitePrefix);
+    }
+    const storedOpenaiUrl = localStorage.getItem("openaiUrl");
+    if (storedOpenaiUrl) {
+      setOpenaiUrl(storedOpenaiUrl);
+    }
+    const storedOpenaiToken = localStorage.getItem("openaiToken");
+    if (storedOpenaiToken) {
+      setOpenaiToken(storedOpenaiToken);
+    }
+    const storedWechatAppId = localStorage.getItem("wechatAppId");
+    if (storedWechatAppId) {
+      setWechatAppId(storedWechatAppId);
+    }
+    const storedWechatAppSecret = localStorage.getItem("wechatAppSecret");
+    if (storedWechatAppSecret) {
+      setWechatAppSecret(storedWechatAppSecret);
+    }
+    const storedOpenaiModel = localStorage.getItem("openaiModel");
+    if (storedOpenaiModel) {
+      setOpenaiModel(storedOpenaiModel);
+    }
   }, []);
 
   useEffect(() => {
     localStorage.setItem("imagePrefix", imagePrefix);
   }, [imagePrefix]);
+
+  useEffect(() => {
+    localStorage.setItem("sitePrefix", sitePrefix);
+  }, [sitePrefix]);
+
+  useEffect(() => {
+    localStorage.setItem("openaiUrl", openaiUrl);
+  }, [openaiUrl]);
+
+  useEffect(() => {
+    localStorage.setItem("openaiToken", openaiToken);
+  }, [openaiToken]);
+
+  useEffect(() => {
+    localStorage.setItem("wechatAppId", wechatAppId);
+  }, [wechatAppId]);
+
+  useEffect(() => {
+    localStorage.setItem("wechatAppSecret", wechatAppSecret);
+  }, [wechatAppSecret]);
+
+  useEffect(() => {
+    localStorage.setItem("openaiModel", openaiModel);
+  }, [openaiModel]);
 
   useEffect(() => {
     const convert = async () => {
@@ -174,12 +240,69 @@ graph TD;
         console.error("Conversion failed", e);
       }
     };
+
     convert();
   }, [markdown, currentTheme, customTheme]);
+
+  const handleUploadImagesToWechat = async () => {
+    try {
+      const isTauri = typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__;
+      if (!isTauri) {
+        alert("上传公众号图片仅在 Tauri 应用中可用。");
+        appendDebugLog("上传公众号图片失败：当前不在 Tauri 环境中。");
+        return;
+      }
+
+      if (!wechatAppId || !wechatAppSecret) {
+        alert("请先在设置页配置微信公众号 APPID 和 APPSECRET。");
+        setActivePage("settings");
+        appendDebugLog("上传公众号图片失败：未配置 APPID 或 APPSECRET。");
+        return;
+      }
+
+      setIsUploadingWechatImages(true);
+      appendDebugLog(`开始上传图片到公众号并替换 Markdown 中的图片链接，使用 APPID=${wechatAppId || "<未填写>"}。`);
+
+      let baseDir: string | null = null;
+      if (currentFilePath) {
+        baseDir = currentFilePath.replace(/[\\/][^\\/]*$/, "");
+      }
+
+      const result = await invoke<any>("wechat_upload_and_replace_images", {
+        markdown,
+        appId: wechatAppId,
+        appSecret: wechatAppSecret,
+        baseDir,
+        sitePrefix,
+      });
+
+      if (result && typeof result.markdown === "string") {
+        setMarkdown(result.markdown);
+        const count = Array.isArray(result.items) ? result.items.length : 0;
+        appendDebugLog(`上传图片到公众号成功，处理图片数量: ${count}。`);
+        alert("图片已上传到公众号并替换链接。");
+      } else {
+        appendDebugLog("上传公众号图片完成，但返回结果异常（缺少 markdown 字段）。");
+        alert("上传完成，但返回结果异常。");
+      }
+    } catch (e) {
+      console.error("Upload images to WeChat failed", e);
+      appendDebugLog("上传公众号图片失败: " + String(e));
+      alert("上传公众号图片失败");
+    } finally {
+      setIsUploadingWechatImages(false);
+    }
+  };
 
   useEffect(() => {
     setHtml(applyImagePrefix(rawHtml, imagePrefix));
   }, [rawHtml, imagePrefix]);
+
+  const appendDebugLog = (message: string) => {
+    const time = new Date().toLocaleString();
+    const line = `[${time}] ${message}`;
+    setDebugLogs((prev) => [line, ...prev].slice(0, 200));
+  };
 
   const copyToClipboard = async () => {
     try {
@@ -198,8 +321,10 @@ graph TD;
       })];
       await navigator.clipboard.write(data);
       alert("Copied to clipboard!");
+      appendDebugLog("复制 HTML 到剪贴板成功。");
     } catch (e) {
       console.error("Copy failed", e);
+      appendDebugLog("复制到剪贴板失败: " + String(e));
       alert("Copy failed: " + e);
     }
   };
@@ -261,18 +386,114 @@ graph TD;
       const isTauri = typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__;
       if (!isTauri) {
         alert("AI 摘要仅在 Tauri 应用中可用。");
+        appendDebugLog("AI 摘要失败：当前不在 Tauri 环境中。");
         return;
       }
       setIsSummarizing(true);
       setSummary("");
-      const result = await invoke<string>("generate_summary", { markdown });
+      const effectiveOpenaiUrl = openaiUrl && openaiUrl.trim().length > 0
+        ? openaiUrl.trim()
+        : "<默认 https://api.deepseek.com/v1>";
+      appendDebugLog(`开始请求 AI 摘要，使用 OpenAI URL=${effectiveOpenaiUrl}, Model=${openaiModel || "<默认 deepseek-chat>"}。`);
+      const result = await invoke<string>("generate_summary", {
+        markdown,
+        api_base_url: openaiUrl,
+        api_token: openaiToken,
+        api_model: openaiModel,
+      });
       setSummary(result);
+      appendDebugLog("AI 摘要成功生成。");
     } catch (e) {
       console.error("Generate summary failed", e);
+      appendDebugLog("AI 摘要失败: " + String(e));
       alert("AI 摘要失败");
     } finally {
       setIsSummarizing(false);
     }
+  };
+
+  const handleTestOpenai = async () => {
+    try {
+      const isTauri = typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__;
+      if (!isTauri) {
+        alert("测试 OpenAI 接口仅在 Tauri 应用中可用。");
+        appendDebugLog("测试 OpenAI 接口失败：当前不在 Tauri 环境中。");
+        return;
+      }
+
+      if (!openaiToken) {
+        alert("请先在设置页填写 OpenAI Token。");
+        appendDebugLog("测试 OpenAI 接口失败：未填写 OpenAI Token。");
+        return;
+      }
+
+      setIsTestingOpenai(true);
+      const effectiveOpenaiUrl = openaiUrl && openaiUrl.trim().length > 0
+        ? openaiUrl.trim()
+        : "<默认 https://api.deepseek.com/v1>";
+      setOpenaiTestStatus("正在测试 OpenAI 接口...");
+      appendDebugLog(`开始测试 OpenAI 接口配置，使用 URL=${effectiveOpenaiUrl}, Model=${openaiModel || "<默认 deepseek-chat>"}。`);
+
+      const result = await invoke<string>("test_openai_config", {
+        api_base_url: openaiUrl,
+        api_token: openaiToken,
+        api_model: openaiModel,
+      });
+
+      setOpenaiTestStatus(result);
+      appendDebugLog("测试 OpenAI 接口成功: " + result);
+    } catch (e) {
+      console.error("Test OpenAI config failed", e);
+      const msg = "测试 OpenAI 接口失败: " + String(e);
+      setOpenaiTestStatus(msg);
+      appendDebugLog(msg);
+    } finally {
+      setIsTestingOpenai(false);
+    }
+  };
+
+  const handleTestWechat = async () => {
+    try {
+      const isTauri = typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__;
+      if (!isTauri) {
+        alert("测试 access_token 仅在 Tauri 应用中可用。");
+        appendDebugLog("测试 access_token 失败：当前不在 Tauri 环境中。");
+        return;
+      }
+
+      if (!wechatAppId || !wechatAppSecret) {
+        alert("请先在设置页填写微信公众号 APPID 和 APPSECRET。");
+        appendDebugLog("测试 access_token 失败：未配置 APPID 或 APPSECRET。");
+        return;
+      }
+
+      setIsTestingWechat(true);
+      setWechatTestStatus("正在测试 access_token 获取...");
+      appendDebugLog(`开始测试微信公众号 access_token 获取，使用 APPID=${wechatAppId}。`);
+
+      const result = await invoke<string>("test_wechat_access_token", {
+        appId: wechatAppId,
+        appSecret: wechatAppSecret,
+      });
+
+      setWechatTestStatus(result);
+      appendDebugLog("测试 access_token 成功: " + result);
+    } catch (e) {
+      console.error("Test WeChat access token failed", e);
+      const msg = "测试 access_token 失败: " + String(e);
+      setWechatTestStatus(msg);
+      appendDebugLog(msg);
+    } finally {
+      setIsTestingWechat(false);
+    }
+  };
+
+  const handleSettingsSave = () => {
+    setSettingsSaveStatus("保存成功");
+    appendDebugLog("保存设置成功");
+    setTimeout(() => {
+      setSettingsSaveStatus("");
+    }, 2000);
   };
 
   return (
@@ -365,42 +586,194 @@ graph TD;
             {isSummarizing ? "生成中..." : "AI 摘要"}
           </button>
 
+          <button
+            className="btn"
+            onClick={handleUploadImagesToWechat}
+            disabled={isUploadingWechatImages}
+            title="Upload images to WeChat and replace URLs"
+          >
+            <Image size={16} />
+            {isUploadingWechatImages ? "上传中..." : "上传图片到公众号"}
+          </button>
+
           <button className="btn btn-primary" onClick={copyToClipboard}>
             <Copy size={16} />
             Copy
           </button>
+
+          <button
+            className={`btn ${activePage === "settings" ? "btn-primary" : ""}`}
+            onClick={() => setActivePage(activePage === "settings" ? "editor" : "settings")}
+            title="Settings"
+          >
+            <Settings size={16} />
+            {activePage === "settings" ? "返回编辑" : "设置"}
+          </button>
         </div>
       </div>
-      <div className="workspace">
-        <div className="editor-pane">
-          <div className="editor-header">
-            <span>Markdown Editor</span>
-            <span>{currentFilePath ? currentFilePath.split(/[\\/]/).pop() : 'Untitled'}</span>
-          </div>
-          <div className="summary-panel">
-            <div className="summary-title">AI 摘要（≤100字）</div>
-            <div className="summary-body">
-              {isSummarizing
-                ? "正在生成摘要..."
-                : summary || "暂无摘要，点击上方“AI 摘要”按钮生成。"}
+      {activePage === "editor" ? (
+        <div className="workspace">
+          <div className="editor-pane">
+            <div className="editor-header">
+              <span>Markdown Editor</span>
+              <span>{currentFilePath ? currentFilePath.split(/[\\/]/).pop() : 'Untitled'}</span>
             </div>
-          </div>
-          <textarea
-            value={markdown}
-            onChange={(e) => setMarkdown(e.target.value)}
-            placeholder="Type Markdown here..."
-          />
-        </div>
-        <div className="preview-pane">
-          <div className="preview-container">
-            <iframe
-              className="preview-iframe"
-              srcDoc={html}
-              title="Preview"
+            <div className="summary-panel">
+              <div className="summary-title">AI 摘要（≤100字）</div>
+              <div className="summary-body">
+                {isSummarizing
+                  ? "正在生成摘要..."
+                  : summary || "暂无摘要，点击上方“AI 摘要”按钮生成。"}
+              </div>
+            </div>
+            <textarea
+              value={markdown}
+              onChange={(e) => setMarkdown(e.target.value)}
+              placeholder="Type Markdown here..."
             />
           </div>
+          <div className="preview-pane">
+            <div className="preview-container">
+              <iframe
+                className="preview-iframe"
+                srcDoc={html}
+                title="Preview"
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="settings-pane">
+          <div className="settings-toolbar">
+            <div className="settings-toolbar-left">
+              <span className="settings-label">自动保存</span>
+              {settingsSaveStatus && (
+                <span className="settings-save-status">{settingsSaveStatus}</span>
+              )}
+            </div>
+            <button
+              className="btn btn-primary"
+              onClick={handleSettingsSave}
+            >
+              <Save size={16} />
+              保存
+            </button>
+          </div>
+          <div className="settings-section">
+            <div className="settings-section-title">网站配置</div>
+            <div className="settings-field">
+              <label className="settings-label">网站前缀</label>
+              <input
+                className="input settings-input"
+                type="text"
+                value={sitePrefix}
+                onChange={(e) => setSitePrefix(e.target.value)}
+                placeholder="例如：https://example.com"
+              />
+            </div>
+          </div>
+
+          <div className="settings-section">
+            <div className="settings-section-title">OpenAI 兼容接口配置</div>
+            <div className="settings-field">
+              <label className="settings-label">接口 URL</label>
+              <input
+                className="input settings-input"
+                type="text"
+                value={openaiUrl}
+                onChange={(e) => setOpenaiUrl(e.target.value)}
+                placeholder="默认：https://api.deepseek.com/v1"
+              />
+            </div>
+            <div className="settings-field">
+              <label className="settings-label">Token</label>
+              <input
+                className="input settings-input"
+                type="password"
+                value={openaiToken}
+                onChange={(e) => setOpenaiToken(e.target.value)}
+                placeholder="API 访问密钥"
+              />
+            </div>
+            <div className="settings-field">
+              <label className="settings-label">模型</label>
+              <input
+                className="input settings-input"
+                type="text"
+                value={openaiModel}
+                onChange={(e) => setOpenaiModel(e.target.value)}
+                placeholder="默认：deepseek-chat"
+              />
+            </div>
+            <div className="settings-field settings-test-row">
+              <button
+                className="btn"
+                onClick={handleTestOpenai}
+                disabled={isTestingOpenai}
+              >
+                {isTestingOpenai ? "测试中..." : "测试 OpenAI 接口"}
+              </button>
+              {openaiTestStatus && (
+                <span className="settings-test-status">{openaiTestStatus}</span>
+              )}
+            </div>
+          </div>
+
+          <div className="settings-section">
+            <div className="settings-section-title">微信公众号配置</div>
+            <div className="settings-field">
+              <label className="settings-label">APPID</label>
+              <input
+                className="input settings-input"
+                type="text"
+                value={wechatAppId}
+                onChange={(e) => setWechatAppId(e.target.value)}
+                placeholder="公众号 APPID"
+              />
+            </div>
+            <div className="settings-field">
+              <label className="settings-label">APPSECRET</label>
+              <input
+                className="input settings-input"
+                type="password"
+                value={wechatAppSecret}
+                onChange={(e) => setWechatAppSecret(e.target.value)}
+                placeholder="公众号 APPSECRET"
+              />
+            </div>
+            <div className="settings-field settings-test-row">
+              <button
+                className="btn"
+                onClick={handleTestWechat}
+                disabled={isTestingWechat}
+              >
+                {isTestingWechat ? "测试中..." : "测试获取 access_token"}
+              </button>
+              {wechatTestStatus && (
+                <span className="settings-test-status">{wechatTestStatus}</span>
+              )}
+            </div>
+          </div>
+
+          <div className="settings-section">
+            <div className="settings-section-title">调试信息</div>
+            <div className="settings-field">
+              <div className="settings-label">最近的操作日志（仅当前会话内）</div>
+              <div className="debug-panel">
+                {debugLogs.length === 0 ? (
+                  <div className="debug-empty">暂无调试日志。</div>
+                ) : (
+                  <ul className="debug-log-list">
+                    {debugLogs.map((log, index) => (
+                      <li key={index} className="debug-log-item">{log}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
