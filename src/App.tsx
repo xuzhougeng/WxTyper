@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { FileText, Save, Copy, Palette, Image, Upload } from 'lucide-react';
 import "./App.css";
 // @ts-ignore
 import defaultTheme from "./themes/default.css?inline";
@@ -195,74 +196,98 @@ hello("WeChat");
   };
 
   return (
-    <main className="container">
+    <div id="root">
       <div className="toolbar">
-        <button
-          onClick={handleOpenMarkdown}
-          style={{ marginRight: '10px', padding: '8px', borderRadius: '4px' }}
-        >
-          打开 MD
-        </button>
-        <button
-          onClick={handleSaveMarkdown}
-          style={{ marginRight: '10px', padding: '8px', borderRadius: '4px' }}
-        >
-          保存 MD
-        </button>
-        <select
-          value={currentTheme}
-          onChange={(e) => setCurrentTheme(e.target.value)}
-          style={{ marginRight: '10px', padding: '8px', borderRadius: '4px' }}
-        >
-          {Object.keys(builtinThemes).map((themeName) => (
-            <option key={themeName} value={themeName}>
-              {themeName}
-            </option>
-          ))}
-          {customTheme && (
-            <option value={customTheme.name}>
-              {customTheme.name}
-            </option>
-          )}
-        </select>
-        <input
-          type="file"
-          accept=".css"
-          onChange={(e) => {
-            const file = e.target.files && e.target.files[0];
-            if (!file) {
-              return;
-            }
-            const reader = new FileReader();
-            reader.onload = () => {
-              const result = reader.result;
-              if (typeof result !== "string") {
-                return;
-              }
-              const name = `Custom: ${file.name}`;
-              setCustomTheme({ name, css: result });
-              setCurrentTheme(name);
-            };
-            reader.readAsText(file);
-            e.target.value = "";
-          }}
-          style={{ marginRight: '10px', padding: '8px', borderRadius: '4px' }}
-        />
-        <input
-          type="text"
-          value={imagePrefix}
-          onChange={(e) => {
-            const value = e.target.value;
-            setImagePrefix(value);
-            localStorage.setItem("imagePrefix", value);
-          }}
-          placeholder="Image URL prefix, e.g. https://xuzhougeng.com"
-          style={{ marginRight: '10px', padding: '8px', borderRadius: '4px', width: '280px' }}
-        />
-        <button onClick={copyToClipboard}>Copy for WeChat</button>
+        <div className="toolbar-group">
+          <div className="app-title">
+            <FileText size={20} color="var(--primary)" />
+            <span>WxTyper</span>
+          </div>
+          <div className="input-group">
+            <button className="btn" onClick={handleOpenMarkdown} title="Open Markdown">
+              <FileText size={16} /> Open
+            </button>
+            <button className="btn" onClick={handleSaveMarkdown} title="Save Markdown">
+              <Save size={16} /> Save
+            </button>
+          </div>
+        </div>
+
+        <div className="toolbar-group">
+          <div className="input-group">
+            <Palette size={16} color="var(--text-secondary)" />
+            <select
+              className="select"
+              value={currentTheme}
+              onChange={(e) => setCurrentTheme(e.target.value)}
+            >
+              {Object.keys(builtinThemes).map((themeName) => (
+                <option key={themeName} value={themeName}>
+                  {themeName}
+                </option>
+              ))}
+              {customTheme && (
+                <option value={customTheme.name}>
+                  {customTheme.name}
+                </option>
+              )}
+            </select>
+          </div>
+
+          <div className="file-input-wrapper btn" title="Import CSS Theme">
+            <Upload size={16} />
+            <input
+              type="file"
+              accept=".css"
+              onChange={(e) => {
+                const file = e.target.files && e.target.files[0];
+                if (!file) {
+                  return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const result = reader.result;
+                  if (typeof result !== "string") {
+                    return;
+                  }
+                  const name = `Custom: ${file.name}`;
+                  setCustomTheme({ name, css: result });
+                  setCurrentTheme(name);
+                };
+                reader.readAsText(file);
+                e.target.value = "";
+              }}
+            />
+          </div>
+
+          <div className="input-group">
+            <Image size={16} color="var(--text-secondary)" />
+            <input
+              className="input"
+              type="text"
+              value={imagePrefix}
+              onChange={(e) => {
+                const value = e.target.value;
+                setImagePrefix(value);
+                localStorage.setItem("imagePrefix", value);
+              }}
+              placeholder="Image URL Prefix"
+              style={{ width: '180px' }}
+            />
+          </div>
+
+          <button className="btn btn-primary" onClick={copyToClipboard}>
+            <Copy size={16} />
+            Copy
+          </button>
+        </div>
       </div>
       <div className="workspace">
         <div className="editor-pane">
+          <div className="editor-header">
+            <span>Markdown Editor</span>
+            <span>{currentFilePath ? currentFilePath.split(/[\\/]/).pop() : 'Untitled'}</span>
+          </div>
           <textarea
             value={markdown}
             onChange={(e) => setMarkdown(e.target.value)}
@@ -270,14 +295,16 @@ hello("WeChat");
           />
         </div>
         <div className="preview-pane">
-          <iframe
-            srcDoc={html}
-            style={{ width: '100%', height: '100%', border: 'none' }}
-            title="Preview"
-          />
+          <div className="preview-container">
+            <iframe
+              className="preview-iframe"
+              srcDoc={html}
+              title="Preview"
+            />
+          </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 
