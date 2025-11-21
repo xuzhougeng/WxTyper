@@ -7,12 +7,17 @@ import defaultTheme from "./themes/default.css?inline";
 import lapisTheme from "./themes/lapis.css?inline";
 // @ts-ignore
 import sakuraTheme from "./themes/sakura.css?inline";
+// @ts-ignore
+import techTheme from "./themes/tech.css?inline";
 
-const themes = {
+const builtinThemes = {
   "Default (Green)": defaultTheme,
   "Lapis (Blue)": lapisTheme,
   "Sakura (Pink)": sakuraTheme,
-};
+  "Tech (Dark)": techTheme,
+} as const;
+
+type BuiltinThemeName = keyof typeof builtinThemes;
 
 function applyImagePrefix(html: string, prefix: string): string {
   const effectivePrefix = prefix.trim();
@@ -34,11 +39,50 @@ function applyImagePrefix(html: string, prefix: string): string {
 }
 
 function App() {
-  const [markdown, setMarkdown] = useState("# Hello WeChat\n\nWrite your markdown here.");
+  const [markdown, setMarkdown] = useState(
+    `# WxTyper Markdown 示例
+
+这是一个 **微信公众号排版** 的 Markdown 示例，包含常见语法。
+
+## 列表
+
+- 无序列表项 1
+- 无序列表项 2
+
+1. 有序列表 1
+2. 有序列表 2
+
+## 引用
+
+> 这是一段引用文字，用来展示 blockquote 样式。
+
+## 行内代码与代码块
+
+行内代码示例：\`npm run tauri dev\`
+
+\`\`\`js
+function hello(name) {
+  console.log("Hello, " + name);
+}
+hello("WeChat");
+\`\`\`
+
+## 表格
+
+| 功能 | 描述 |
+| ---- | ---- |
+| 主题 | 多套微信风格主题 |
+| 图片前缀 | 支持统一 CDN 前缀 |
+
+## 链接
+
+更多内容请访问 [WxTyper](https://github.com/xuzhougeng/wx_markdown2html)`
+  );
   const [rawHtml, setRawHtml] = useState("");
   const [html, setHtml] = useState("");
-  const [currentTheme, setCurrentTheme] = useState("Default (Green)");
+  const [currentTheme, setCurrentTheme] = useState<BuiltinThemeName | string>("Default (Green)");
   const [imagePrefix, setImagePrefix] = useState("");
+  const [customTheme, setCustomTheme] = useState<{ name: string; css: string } | null>(null);
 
   useEffect(() => {
     const storedPrefix = localStorage.getItem("imagePrefix");
@@ -52,9 +96,16 @@ function App() {
       try {
         // @ts-ignore
         if (window.__TAURI_INTERNALS__) {
+          let css = builtinThemes[currentTheme as BuiltinThemeName];
+          if (!css && customTheme && currentTheme === customTheme.name) {
+            css = customTheme.css;
+          }
+          if (!css) {
+            css = builtinThemes["Default (Green)"];
+          }
           const result = await invoke<string>("convert_markdown", {
             content: markdown,
-            css: themes[currentTheme as keyof typeof themes]
+            css
           });
           setRawHtml(result);
         } else {
@@ -67,7 +118,7 @@ function App() {
       }
     };
     convert();
-  }, [markdown, currentTheme]);
+  }, [markdown, currentTheme, customTheme]);
 
   useEffect(() => {
     setHtml(applyImagePrefix(rawHtml, imagePrefix));
@@ -97,12 +148,40 @@ function App() {
           onChange={(e) => setCurrentTheme(e.target.value)}
           style={{ marginRight: '10px', padding: '8px', borderRadius: '4px' }}
         >
-          {Object.keys(themes).map((themeName) => (
+          {Object.keys(builtinThemes).map((themeName) => (
             <option key={themeName} value={themeName}>
               {themeName}
             </option>
           ))}
+          {customTheme && (
+            <option value={customTheme.name}>
+              {customTheme.name}
+            </option>
+          )}
         </select>
+        <input
+          type="file"
+          accept=".css"
+          onChange={(e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) {
+              return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => {
+              const result = reader.result;
+              if (typeof result !== "string") {
+                return;
+              }
+              const name = `Custom: ${file.name}`;
+              setCustomTheme({ name, css: result });
+              setCurrentTheme(name);
+            };
+            reader.readAsText(file);
+            e.target.value = "";
+          }}
+          style={{ marginRight: '10px', padding: '8px', borderRadius: '4px' }}
+        />
         <input
           type="text"
           value={imagePrefix}

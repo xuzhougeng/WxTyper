@@ -1,5 +1,4 @@
 use pulldown_cmark::{html, Options, Parser};
-use css_inline::CSSInliner;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
