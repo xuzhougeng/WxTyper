@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { FileText, Save, Copy, Palette, Image, Upload } from 'lucide-react';
+import mermaid from "mermaid";
 import "./App.css";
 // @ts-ignore
 import defaultTheme from "./themes/default.css?inline";
@@ -20,6 +21,38 @@ const builtinThemes = {
 } as const;
 
 type BuiltinThemeName = keyof typeof builtinThemes;
+
+let mermaidInitialized = false;
+function ensureMermaidInitialized() {
+  if (!mermaidInitialized) {
+    mermaid.initialize({ startOnLoad: false, securityLevel: "loose" });
+    mermaidInitialized = true;
+  }
+}
+
+async function inlineMermaid(htmlString: string) {
+  ensureMermaidInitialized();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlString, "text/html");
+  const mermaidNodes = Array.from(doc.querySelectorAll(".mermaid"));
+  let idx = 0;
+  for (const node of mermaidNodes) {
+    const code = node.textContent ?? "";
+    if (!code.trim()) continue;
+    try {
+      const { svg } = await mermaid.render(`clipboard-mermaid-${idx++}`, code);
+      const wrapper = doc.createElement("div");
+      wrapper.innerHTML = svg;
+      const svgElement = wrapper.firstElementChild;
+      if (svgElement) {
+        node.replaceWith(svgElement);
+      }
+    } catch (error) {
+      console.error("Mermaid render failed", error);
+    }
+  }
+  return "<!DOCTYPE html>" + doc.documentElement.outerHTML;
+}
 
 function applyImagePrefix(html: string, prefix: string): string {
   const effectivePrefix = prefix.trim();
@@ -69,6 +102,18 @@ function hello(name) {
 hello("WeChat");
 \`\`\`
 
+## Mermaid
+
+支持 Mermaid 语法, 注意用mermaid包裹
+
+\`\`\`mermaid
+graph TD;
+    A-->B;
+    A-->C;
+    B-->D;
+    C-->D;
+\`\`\`
+
 ## 表格
 
 | 功能 | 描述 |
@@ -86,6 +131,7 @@ hello("WeChat");
   const [imagePrefix, setImagePrefix] = useState("");
   const [customTheme, setCustomTheme] = useState<{ name: string; css: string } | null>(null);
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
+  const previewRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     const storedPrefix = localStorage.getItem("imagePrefix");
@@ -133,7 +179,14 @@ hello("WeChat");
 
   const copyToClipboard = async () => {
     try {
-      const blob = new Blob([html], { type: "text/html" });
+      let htmlToCopy = html;
+      const iframeDoc = previewRef.current?.contentDocument;
+      if (iframeDoc?.body) {
+        const processedBody = iframeDoc.body.innerHTML;
+        htmlToCopy = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${processedBody}</body></html>`;
+      }
+      htmlToCopy = await inlineMermaid(htmlToCopy);
+      const blob = new Blob([htmlToCopy], { type: "text/html" });
       const textBlob = new Blob([markdown], { type: "text/plain" });
       const data = [new ClipboardItem({
         "text/html": blob,
