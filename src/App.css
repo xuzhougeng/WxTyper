@@ -89,6 +89,28 @@ body {
   align-items: center;
 }
 
+.summary-panel {
+  padding: 8px 12px 10px;
+  background-color: #f9fafb;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.summary-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.summary-body {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.6;
+  max-height: 4.8em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .editor-pane textarea {
   flex: 1;
   width: 100%;

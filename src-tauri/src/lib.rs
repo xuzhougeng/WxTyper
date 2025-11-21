@@ -1,4 +1,6 @@
 use pulldown_cmark::{html, Options, Parser};
+use reqwest::Client;
+use serde::{Deserialize, Serialize};
 
 fn get_fallback_css() -> &'static str {
     r#"
@@ -252,6 +254,101 @@ fn replace_mermaid_blocks(input_html: &str) -> (String, bool) {
     (output, has_mermaid)
 }
 
+#[derive(Serialize)]
+struct ChatCompletionRequestMessage {
+    role: String,
+    content: String,
+}
+
+#[derive(Serialize)]
+struct ChatCompletionRequest {
+    model: String,
+    messages: Vec<ChatCompletionRequestMessage>,
+    max_tokens: u32,
+    temperature: f32,
+}
+
+#[derive(Deserialize)]
+struct ChatCompletionResponseMessage {
+    content: String,
+}
+
+#[derive(Deserialize)]
+struct ChatCompletionChoice {
+    message: ChatCompletionResponseMessage,
+}
+
+#[derive(Deserialize)]
+struct ChatCompletionResponse {
+    choices: Vec<ChatCompletionChoice>,
+}
+
+#[tauri::command]
+async fn generate_summary(markdown: String) -> Result<String, String> {
+    let api_key = std::env::var("OPENAI_API_KEY")
+        .map_err(|_| "OPENAI_API_KEY is not set".to_string())?;
+
+    let base_url = std::env::var("OPENAI_BASE_URL")
+        .unwrap_or_else(|_| "https://api.openai.com/v1".to_string());
+
+    let model = std::env::var("OPENAI_MODEL")
+        .unwrap_or_else(|_| "gpt-4o-mini".to_string());
+
+    let prompt = format!(
+        "请根据以下微信公众号 Markdown 内容生成一个中文摘要，不超过100个汉字，不要换行，只输出摘要内容：\n\n{}",
+        markdown
+    );
+
+    let request_body = ChatCompletionRequest {
+        model,
+        messages: vec![ChatCompletionRequestMessage {
+            role: "user".to_string(),
+            content: prompt,
+        }],
+        max_tokens: 200,
+        temperature: 0.3,
+    };
+
+    let client = Client::new();
+    let url = format!(
+        "{}/chat/completions",
+        base_url.trim_end_matches('/')
+    );
+
+    let response = client
+        .post(url)
+        .bearer_auth(api_key)
+        .json(&request_body)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let text = response.text().await.unwrap_or_default();
+        return Err(format!("HTTP {}: {}", status, text));
+    }
+
+    let parsed: ChatCompletionResponse = response.json().await.map_err(|e| e.to_string())?;
+
+    let content = parsed
+        .choices
+        .into_iter()
+        .next()
+        .map(|c| c.message.content.trim().to_string())
+        .ok_or_else(|| "Empty response from AI".to_string())?;
+
+    let mut truncated = String::new();
+    for (idx, ch) in content.chars().enumerate() {
+        if idx >= 100 {
+            break;
+        }
+        truncated.push(ch);
+    }
+
+    Ok(truncated)
+}
+
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn convert_markdown(content: String, css: String) -> Result<String, String> {
@@ -330,7 +427,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             convert_markdown,
             open_markdown_file,
-            save_markdown_file
+            save_markdown_file,
+            generate_summary
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

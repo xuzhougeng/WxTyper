@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
-import { FileText, Save, Copy, Palette, Image, Upload } from 'lucide-react';
+import { FileText, Save, Copy, Palette, Image, Upload, Sparkles } from 'lucide-react';
 import mermaid from "mermaid";
 import "./App.css";
 // @ts-ignore
@@ -133,6 +133,8 @@ graph TD;
   const [imagePrefix, setImagePrefix] = useState("");
   const [customTheme, setCustomTheme] = useState<{ name: string; css: string } | null>(null);
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
+  const [summary, setSummary] = useState("");
+  const [isSummarizing, setIsSummarizing] = useState(false);
   const previewRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
@@ -254,6 +256,25 @@ graph TD;
     }
   };
 
+  const handleGenerateSummary = async () => {
+    try {
+      const isTauri = typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__;
+      if (!isTauri) {
+        alert("AI 摘要仅在 Tauri 应用中可用。");
+        return;
+      }
+      setIsSummarizing(true);
+      setSummary("");
+      const result = await invoke<string>("generate_summary", { markdown });
+      setSummary(result);
+    } catch (e) {
+      console.error("Generate summary failed", e);
+      alert("AI 摘要失败");
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
   return (
     <div id="root">
       <div className="toolbar">
@@ -334,6 +355,16 @@ graph TD;
             />
           </div>
 
+          <button
+            className="btn"
+            onClick={handleGenerateSummary}
+            disabled={isSummarizing}
+            title="Generate AI Summary"
+          >
+            <Sparkles size={16} />
+            {isSummarizing ? "生成中..." : "AI 摘要"}
+          </button>
+
           <button className="btn btn-primary" onClick={copyToClipboard}>
             <Copy size={16} />
             Copy
@@ -345,6 +376,14 @@ graph TD;
           <div className="editor-header">
             <span>Markdown Editor</span>
             <span>{currentFilePath ? currentFilePath.split(/[\\/]/).pop() : 'Untitled'}</span>
+          </div>
+          <div className="summary-panel">
+            <div className="summary-title">AI 摘要（≤100字）</div>
+            <div className="summary-body">
+              {isSummarizing
+                ? "正在生成摘要..."
+                : summary || "暂无摘要，点击上方“AI 摘要”按钮生成。"}
+            </div>
           </div>
           <textarea
             value={markdown}
