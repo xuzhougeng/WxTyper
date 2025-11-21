@@ -116,3 +116,33 @@ th {
 tr:nth-child(2n) {
   background-color: #f8f8f8;
 }
+
+/* Footnote styles */
+.footnote-ref {
+  color: #07c160;
+  font-size: 0.8em;
+  vertical-align: super;
+  margin: 0 2px;
+}
+
+.footnotes {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #eaeaea;
+  font-size: 14px;
+}
+
+.footnotes ol {
+  padding-left: 20px;
+  margin: 0;
+}
+
+.footnotes li {
+  margin-bottom: 8px;
+  color: #666;
+}
+
+.footnote-url {
+  color: #576b95;
+  word-break: break-all;
+}

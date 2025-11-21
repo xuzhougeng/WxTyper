@@ -41,12 +41,12 @@ async function inlineMermaid(htmlString: string) {
     if (!code.trim()) continue;
     try {
       const { svg } = await mermaid.render(`clipboard-mermaid-${idx++}`, code);
-      const wrapper = doc.createElement("div");
-      wrapper.innerHTML = svg;
-      const svgElement = wrapper.firstElementChild;
-      if (svgElement) {
-        node.replaceWith(svgElement);
-      }
+      const svgBase64 = btoa(unescape(encodeURIComponent(svg)));
+      const img = doc.createElement("img");
+      img.src = `data:image/svg+xml;base64,${svgBase64}`;
+      img.style.maxWidth = "100%";
+      img.style.height = "auto";
+      node.replaceWith(img);
     } catch (error) {
       console.error("Mermaid render failed", error);
     }
@@ -123,7 +123,9 @@ graph TD;
 
 ## 链接
 
-更多内容请访问 [WxTyper](https://github.com/xuzhougeng/wx_markdown2html)`
+这是一个[测试链接](https://github.com/xuzhougeng/wx_markdown2html)的示例。
+
+更多内容请访问 [WxTyper](https://github.com/xuzhougeng/wx_markdown2html) 和 [GitHub](https://github.com)。`
   );
   const [rawHtml, setRawHtml] = useState("");
   const [html, setHtml] = useState("");
