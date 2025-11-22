@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import {
   FileText,
@@ -8,7 +7,6 @@ import {
   Copy,
   Palette,
   Image as IconImage,
-  Upload,
   Sparkles,
   Settings,
   Download,
@@ -113,13 +111,48 @@ async function svgToPngBytes(svg: string): Promise<Uint8Array> {
   });
 }
 
-function applyImagePrefix(html: string, prefix: string): string {
+function convertLocalImagePaths(html: string, baseDir: string | null, assetsDir: string): string {
+  // 将本地相对路径（如 assets/xxx.png）转换为 Tauri 资源 URL
+  if (!baseDir) return html;
+  
+  // 确保baseDir末尾有路径分隔符
+  const normalizedBaseDir = baseDir.replace(/[\\/]+$/, ""); // 先移除末尾所有分隔符
+  const sep = normalizedBaseDir.includes("\\") ? "\\" : "/";
+  const assetsDirPattern = assetsDir.replace(/[\\/]+$/, ""); // 移除末尾分隔符
+  
+  return html.replace(/(<img\b[^>]*\bsrc=)(["'])([^"']+?)\2/gi, (match, before, quote, url) => {
+    const trimmedUrl = url.trim();
+    
+    // 跳过已经是完整URL的图片
+    if (/^(https?:|data:|\/\/|tauri:)/i.test(trimmedUrl)) {
+      return match;
+    }
+    
+    // 处理相对路径（如 assets/xxx.png 或 ./assets/xxx.png）
+    if (trimmedUrl.startsWith(`${assetsDirPattern}/`) || trimmedUrl.startsWith(`./${assetsDirPattern}/`)) {
+      const cleanUrl = trimmedUrl.replace(/^\.\/ /, "");
+      const fullPath = `${normalizedBaseDir}${sep}${cleanUrl.replace(/\//g, sep)}`;
+      const tauriUrl = convertFileSrc(fullPath);
+      return `${before}${quote}${tauriUrl}${quote}`;
+    }
+    
+    return match;
+  });
+}
+
+function applyImagePrefix(html: string, prefix: string, assetsDir: string): string {
   const effectivePrefix = prefix.trim();
   if (!effectivePrefix) return html;
   const trimmedPrefix = effectivePrefix.replace(/\/+$/, "");
+  const assetsDirPattern = assetsDir.replace(/[\\/]+$/, "");
   return html.replace(/(<img\b[^>]*\bsrc=)(["'])([^"']+?)\2/gi, (match, before, quote, url) => {
     const trimmedUrl = url.trim();
-    if (/^(https?:|data:|\/\/)/i.test(trimmedUrl)) {
+    // 跳过已经是完整URL的图片（包括Tauri资源URL）
+    if (/^(https?:|data:|\/\/|tauri:)/i.test(trimmedUrl)) {
+      return match;
+    }
+    // 跳过本地assets路径，这些应该由convertLocalImagePaths处理
+    if (trimmedUrl.startsWith(`${assetsDirPattern}/`) || trimmedUrl.startsWith(`./${assetsDirPattern}/`)) {
       return match;
     }
     let newUrl = trimmedUrl;
@@ -194,6 +227,7 @@ graph TD;
   const [html, setHtml] = useState("");
   const [currentTheme, setCurrentTheme] = useState<BuiltinThemeName | string>("Default (Green)");
   const [imagePrefix, setImagePrefix] = useState("");
+  const [assetsDir, setAssetsDir] = useState("assets");
   const [customTheme, setCustomTheme] = useState<{ name: string; css: string } | null>(null);
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
   const [summary, setSummary] = useState("");
@@ -218,6 +252,10 @@ graph TD;
     const storedPrefix = localStorage.getItem("imagePrefix");
     if (storedPrefix) {
       setImagePrefix(storedPrefix);
+    }
+    const storedAssetsDir = localStorage.getItem("assetsDir");
+    if (storedAssetsDir) {
+      setAssetsDir(storedAssetsDir);
     }
     const storedSitePrefix = localStorage.getItem("sitePrefix");
     if (storedSitePrefix) {
@@ -248,6 +286,10 @@ graph TD;
   useEffect(() => {
     localStorage.setItem("imagePrefix", imagePrefix);
   }, [imagePrefix]);
+
+  useEffect(() => {
+    localStorage.setItem("assetsDir", assetsDir);
+  }, [assetsDir]);
 
   useEffect(() => {
     localStorage.setItem("sitePrefix", sitePrefix);
@@ -303,30 +345,37 @@ graph TD;
     convert();
   }, [markdown, currentTheme, customTheme]);
 
+  useEffect(() => {
+    // 先转换本地图片路径为 Tauri 资源 URL
+    let processedHtml = rawHtml;
+    if (currentFilePath) {
+      const baseDir = currentFilePath.replace(/[^\\/]*$/, "");
+      processedHtml = convertLocalImagePaths(rawHtml, baseDir, assetsDir);
+    }
+    // 再应用 CDN 前缀
+    setHtml(applyImagePrefix(processedHtml, imagePrefix, assetsDir));
+  }, [rawHtml, imagePrefix, currentFilePath, assetsDir]);
+
   const handleUploadImagesToWechat = async () => {
     try {
       const isTauri = typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__;
       if (!isTauri) {
         alert("上传公众号图片仅在 Tauri 应用中可用。");
-        appendDebugLog("上传公众号图片失败：当前不在 Tauri 环境中。");
         return;
       }
 
       if (!wechatAppId || !wechatAppSecret) {
         alert("请先在设置页配置微信公众号 APPID 和 APPSECRET。");
         setActivePage("settings");
-        appendDebugLog("上传公众号图片失败：未配置 APPID 或 APPSECRET。");
         return;
       }
 
       if (markdown.includes("```mermaid")) {
         alert("检测到 Mermaid 代码块，请先使用工具栏的“导出 Mermaid 图片”按钮，将 Mermaid 图保存为 PNG 并替换为图片后，再上传到公众号。");
-        appendDebugLog("上传公众号图片被阻止：检测到 Mermaid 代码块，请先将 Mermaid 导出为 PNG 图片。");
         return;
       }
 
       setIsUploadingWechatImages(true);
-      appendDebugLog(`开始上传图片到公众号并替换 Markdown 中的图片链接，使用 APPID=${wechatAppId || "<未填写>"}。`);
 
       let baseDir: string | null = null;
       if (currentFilePath) {
@@ -343,25 +392,17 @@ graph TD;
 
       if (result && typeof result.markdown === "string") {
         setMarkdown(result.markdown);
-        const count = Array.isArray(result.items) ? result.items.length : 0;
-        appendDebugLog(`上传图片到公众号成功，处理图片数量: ${count}。`);
         alert("图片已上传到公众号并替换链接。");
       } else {
-        appendDebugLog("上传公众号图片完成，但返回结果异常（缺少 markdown 字段）。");
         alert("上传完成，但返回结果异常。");
       }
     } catch (e) {
       console.error("Upload images to WeChat failed", e);
-      appendDebugLog("上传公众号图片失败: " + String(e));
       alert("上传公众号图片失败");
     } finally {
       setIsUploadingWechatImages(false);
     }
   };
-
-  useEffect(() => {
-    setHtml(applyImagePrefix(rawHtml, imagePrefix));
-  }, [rawHtml, imagePrefix]);
 
   const appendDebugLog = (message: string) => {
     const time = new Date().toLocaleString();
@@ -484,6 +525,15 @@ graph TD;
       const dir = lastSepIndex >= 0 ? currentFilePath.slice(0, lastSepIndex) : "";
       const sep = currentFilePath.includes("\\") ? "\\" : "/";
 
+      // 创建图片保存目录
+      const targetDir = dir ? `${dir}${sep}${assetsDir}` : assetsDir;
+      try {
+        await invoke("create_directory", { path: targetDir });
+      } catch (e) {
+        // 目录可能已存在，忽略错误
+        console.log(`${assetsDir} 目录可能已存在:`, e);
+      }
+
       ensureMermaidInitialized();
 
       let newMarkdown = "";
@@ -513,11 +563,11 @@ graph TD;
         const fileName = mermaidBlocks.length === 1
           ? `${timestamp}.png`
           : `${timestamp}-${blockIndex + 1}.png`;
-        const fullPath = dir ? `${dir}${sep}${fileName}` : fileName;
+        const fullPath = `${targetDir}${sep}${fileName}`;
 
         await invoke("save_binary_file", { path: fullPath, bytes: Array.from(pngBytes) });
 
-        const imageMarkdown = `![Mermaid 图](${fileName})`;
+        const imageMarkdown = `![Mermaid 图](${assetsDir}/${fileName})`;
         newMarkdown += imageMarkdown;
 
         lastIndex = matchEnd;
@@ -547,7 +597,7 @@ graph TD;
 
       if (!currentFilePath) {
         alert("请先保存 Markdown 文件，再进行本地化图片操作。");
-        appendDebugLog("一键本地化图片失败：当前文件尚未保存，无法确定 assets 目录。");
+        appendDebugLog(`一键本地化图片失败：当前文件尚未保存，无法确定 ${assetsDir} 目录。`);
         return;
       }
 
@@ -556,17 +606,18 @@ graph TD;
         baseDir = currentFilePath.replace(/[\\/][^\\/]*$/, "");
       }
 
-      appendDebugLog("开始一键本地化图片：下载远程图片到 assets 并重写 Markdown 路径。");
+      appendDebugLog(`开始一键本地化图片：下载远程图片到 ${assetsDir} 并重写 Markdown 路径。`);
 
       const result = await invoke<string>("localize_images_to_assets", {
         markdown,
         baseDir,
         sitePrefix,
+        assetsDir,
       });
 
       setMarkdown(result);
       appendDebugLog("一键本地化图片完成。");
-      alert("图片已本地化到 assets 目录并更新 Markdown 路径。");
+      alert(`图片已本地化到 ${assetsDir} 目录并更新 Markdown 路径。`);
     } catch (e) {
       console.error("Localize images failed", e);
       appendDebugLog("一键本地化图片失败: " + String(e));
@@ -879,6 +930,17 @@ graph TD;
                 onChange={(e) => setSitePrefix(e.target.value)}
                 placeholder="例如：https://example.com"
               />
+            </div>
+            <div className="settings-field">
+              <label className="settings-label">图片保存目录</label>
+              <input
+                className="input settings-input"
+                type="text"
+                value={assetsDir}
+                onChange={(e) => setAssetsDir(e.target.value)}
+                placeholder="默认：assets"
+              />
+              <div className="settings-field-hint">本地图片（Mermaid导出、图片本地化等）将保存到此目录</div>
             </div>
           </div>
 

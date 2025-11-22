@@ -849,11 +849,14 @@ async fn localize_images_to_assets(
     markdown: String,
     baseDir: Option<String>,
     sitePrefix: Option<String>,
+    assetsDir: Option<String>,
 ) -> Result<String, String> {
+    let assets_dir_name = assetsDir.unwrap_or_else(|| "assets".to_string());
+    
     let base_dir_path = if let Some(dir) = baseDir {
         PathBuf::from(dir)
     } else {
-        return Err("当前文件尚未保存，无法确定 assets 目录".to_string());
+        return Err(format!("当前文件尚未保存，无法确定 {} 目录", assets_dir_name));
     };
 
     let re = Regex::new(r"!\[[^\]]*]\(([^)]+)\)").map_err(|e| e.to_string())?;
@@ -872,7 +875,8 @@ async fn localize_images_to_assets(
             continue;
         }
 
-        if url.starts_with("assets/") {
+        let assets_dir_prefix = format!("{}/", assets_dir_name);
+        if url.starts_with(&assets_dir_prefix) {
             url_map.insert(url.clone(), url.clone());
             continue;
         }
@@ -928,14 +932,14 @@ async fn localize_images_to_assets(
 
         if let (Some(bytes), Some(filename)) = (bytes_opt, filename_opt) {
             let mut assets_dir = base_dir_path.clone();
-            assets_dir.push("assets");
+            assets_dir.push(&assets_dir_name);
             std::fs::create_dir_all(&assets_dir).map_err(|e| e.to_string())?;
 
             let mut local_path = assets_dir.clone();
             local_path.push(&filename);
             std::fs::write(&local_path, &bytes).map_err(|e| e.to_string())?;
 
-            let new_url = format!("assets/{}", filename);
+            let new_url = format!("{}/{}", assets_dir_name, filename);
             url_map.insert(url.clone(), new_url);
         }
     }
@@ -1064,6 +1068,11 @@ fn save_binary_file(path: String, bytes: Vec<u8>) -> Result<(), String> {
     std::fs::write(&path, bytes).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn create_directory(path: String) -> Result<(), String> {
+    std::fs::create_dir_all(&path).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1074,6 +1083,7 @@ pub fn run() {
             open_markdown_file,
             save_markdown_file,
             save_binary_file,
+            create_directory,
             generate_summary,
             wechat_upload_and_replace_images,
             test_openai_config,
