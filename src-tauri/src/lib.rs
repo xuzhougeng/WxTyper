@@ -389,26 +389,26 @@ async fn get_wechat_access_token(client: &Client, app_id: &str, app_secret: &str
 #[tauri::command]
 async fn generate_summary(
     markdown: String,
-    api_base_url: Option<String>,
-    api_token: Option<String>,
-    api_model: Option<String>,
+    apiBaseUrl: Option<String>,
+    apiToken: Option<String>,
+    apiModel: Option<String>,
 ) -> Result<String, String> {
     // 只使用用户配置的值，不回退到环境变量
-    let api_key = api_token
+    let api_key = apiToken
         .and_then(|s| {
             let trimmed = s.trim().to_string();
             if trimmed.is_empty() { None } else { Some(trimmed) }
         })
         .ok_or_else(|| "请先在设置页配置 OpenAI Token".to_string())?;
 
-    let base_url = api_base_url
+    let base_url = apiBaseUrl
         .and_then(|s| {
             let trimmed = s.trim().to_string();
             if trimmed.is_empty() { None } else { Some(trimmed) }
         })
         .unwrap_or_else(|| "https://api.deepseek.com/v1".to_string());
 
-    let model = api_model
+    let model = apiModel
         .and_then(|s| {
             let trimmed = s.trim().to_string();
             if trimmed.is_empty() { None } else { Some(trimmed) }
@@ -472,41 +472,45 @@ async fn generate_summary(
 
 #[tauri::command]
 async fn test_openai_config(
-    api_base_url: Option<String>,
-    api_token: Option<String>,
-    api_model: Option<String>,
+    apiBaseUrl: Option<String>,
+    apiToken: Option<String>,
+    apiModel: Option<String>,
 ) -> Result<String, String> {
-    // Debug: Log what we received from frontend
-    eprintln!("=== test_openai_config Debug ===");
-    eprintln!("api_token from frontend: {:?}", api_token);
-    eprintln!("api_base_url from frontend: {:?}", api_base_url);
-    eprintln!("api_model from frontend: {:?}", api_model);
+    // 构建诊断信息
+    let token_debug = match &apiToken {
+        Some(t) => format!("Some(length={})", t.len()),
+        None => "None".to_string(),
+    };
+    let url_debug = match &apiBaseUrl {
+        Some(u) => format!("Some('{}')", u),
+        None => "None".to_string(),
+    };
+    let model_debug = match &apiModel {
+        Some(m) => format!("Some('{}')", m),
+        None => "None".to_string(),
+    };
     
     // 只使用用户配置的值，不回退到环境变量
-    let api_key = api_token
+    let api_key = apiToken
         .and_then(|s| {
             let trimmed = s.trim().to_string();
-            eprintln!("After trim, token length: {}", trimmed.len());
-            if trimmed.is_empty() { 
-                eprintln!("Token is empty after trim");
-                None 
-            } else { 
-                eprintln!("Using token from frontend (first 10 chars): {}", &trimmed.chars().take(10).collect::<String>());
-                Some(trimmed) 
-            }
+            if trimmed.is_empty() { None } else { Some(trimmed) }
         })
-        .ok_or_else(|| "请先在设置页配置 OpenAI Token".to_string())?;
-    
-    eprintln!("Final API key length: {}", api_key.len());
+        .ok_or_else(|| {
+            format!(
+                "后端收到的参数: apiToken={}, apiBaseUrl={}, apiModel={}. Token 为 None 或空字符串，请检查前端传递的参数。",
+                token_debug, url_debug, model_debug
+            )
+        })?;
 
-    let base_url = api_base_url
+    let base_url = apiBaseUrl
         .and_then(|s| {
             let trimmed = s.trim().to_string();
             if trimmed.is_empty() { None } else { Some(trimmed) }
         })
         .unwrap_or_else(|| "https://api.deepseek.com/v1".to_string());
 
-    let model = api_model
+    let model = apiModel
         .and_then(|s| {
             let trimmed = s.trim().to_string();
             if trimmed.is_empty() { None } else { Some(trimmed) }

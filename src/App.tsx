@@ -114,20 +114,20 @@ async function svgToPngBytes(svg: string): Promise<Uint8Array> {
 function convertLocalImagePaths(html: string, baseDir: string | null, assetsDir: string): string {
   // 将本地相对路径（如 assets/xxx.png）转换为 Tauri 资源 URL
   if (!baseDir) return html;
-  
+
   // 确保baseDir末尾有路径分隔符
   const normalizedBaseDir = baseDir.replace(/[\\/]+$/, ""); // 先移除末尾所有分隔符
   const sep = normalizedBaseDir.includes("\\") ? "\\" : "/";
   const assetsDirPattern = assetsDir.replace(/[\\/]+$/, ""); // 移除末尾分隔符
-  
+
   return html.replace(/(<img\b[^>]*\bsrc=)(["'])([^"']+?)\2/gi, (match, before, quote, url) => {
     const trimmedUrl = url.trim();
-    
+
     // 跳过已经是完整URL的图片
     if (/^(https?:|data:|\/\/|tauri:)/i.test(trimmedUrl)) {
       return match;
     }
-    
+
     // 处理相对路径（如 assets/xxx.png 或 ./assets/xxx.png）
     if (trimmedUrl.startsWith(`${assetsDirPattern}/`) || trimmedUrl.startsWith(`./${assetsDirPattern}/`)) {
       const cleanUrl = trimmedUrl.replace(/^\.\/ /, "");
@@ -135,7 +135,7 @@ function convertLocalImagePaths(html: string, baseDir: string | null, assetsDir:
       const tauriUrl = convertFileSrc(fullPath);
       return `${before}${quote}${tauriUrl}${quote}`;
     }
-    
+
     return match;
   });
 }
@@ -641,9 +641,9 @@ graph TD;
       appendDebugLog(`开始请求 AI 摘要，使用 OpenAI URL=${effectiveOpenaiUrl}, Model=${openaiModel || "<默认 deepseek-chat>"}。`);
       const result = await invoke<string>("generate_summary", {
         markdown,
-        api_base_url: openaiUrl,
-        api_token: openaiToken,
-        api_model: openaiModel,
+        apiBaseUrl: openaiUrl.trim() || undefined,
+        apiToken: openaiToken.trim() || undefined,
+        apiModel: openaiModel.trim() || undefined,
       });
       setSummary(result);
       appendDebugLog("AI 摘要成功生成。");
@@ -665,9 +665,13 @@ graph TD;
         return;
       }
 
-      if (!openaiToken) {
+      // Trim token and check if it's empty
+      const trimmedToken = openaiToken.trim();
+      appendDebugLog(`[DEBUG] openaiToken state 值: length=${openaiToken.length}, trimmed length=${trimmedToken.length}, first 10 chars="${openaiToken.substring(0, 10)}"`);
+
+      if (!trimmedToken) {
         alert("请先在设置页填写 OpenAI Token。");
-        appendDebugLog("测试 OpenAI 接口失败：未填写 OpenAI Token。");
+        appendDebugLog("测试 OpenAI 接口失败：Token 为空或仅包含空白字符。");
         return;
       }
 
@@ -677,11 +681,16 @@ graph TD;
         : "<默认 https://api.deepseek.com/v1>";
       setOpenaiTestStatus("正在测试 OpenAI 接口...");
       appendDebugLog(`开始测试 OpenAI 接口配置，使用 URL=${effectiveOpenaiUrl}, Model=${openaiModel || "<默认 deepseek-chat>"}。`);
+      // 准备参数，使用 undefined 而不是 null
+      const apiBaseUrl = openaiUrl.trim() || undefined;
+      const apiModel = openaiModel.trim() || undefined;
+
+      appendDebugLog(`[DEBUG] invoke 参数: apiBaseUrl=${apiBaseUrl}, apiToken=<length=${trimmedToken.length}>, apiModel=${apiModel}`);
 
       const result = await invoke<string>("test_openai_config", {
-        api_base_url: openaiUrl,
-        api_token: openaiToken,
-        api_model: openaiModel,
+        apiBaseUrl: apiBaseUrl,
+        apiToken: trimmedToken,
+        apiModel: apiModel,
       });
 
       setOpenaiTestStatus(result);
@@ -777,7 +786,7 @@ graph TD;
               )}
             </select>
           </div>
-          
+
           <div className="file-input-wrapper btn btn-icon" title="Import CSS Theme">
             <Palette size={18} />
             <input
