@@ -393,20 +393,19 @@ async fn generate_summary(
     api_token: Option<String>,
     api_model: Option<String>,
 ) -> Result<String, String> {
+    // 只使用用户配置的值，不回退到环境变量
     let api_key = api_token
         .and_then(|s| {
             let trimmed = s.trim().to_string();
             if trimmed.is_empty() { None } else { Some(trimmed) }
         })
-        .or_else(|| std::env::var("OPENAI_API_KEY").ok())
-        .ok_or_else(|| "OPENAI_API_KEY is not set and no token provided".to_string())?;
+        .ok_or_else(|| "请先在设置页配置 OpenAI Token".to_string())?;
 
     let base_url = api_base_url
         .and_then(|s| {
             let trimmed = s.trim().to_string();
             if trimmed.is_empty() { None } else { Some(trimmed) }
         })
-        .or_else(|| std::env::var("OPENAI_BASE_URL").ok())
         .unwrap_or_else(|| "https://api.deepseek.com/v1".to_string());
 
     let model = api_model
@@ -414,7 +413,6 @@ async fn generate_summary(
             let trimmed = s.trim().to_string();
             if trimmed.is_empty() { None } else { Some(trimmed) }
         })
-        .or_else(|| std::env::var("OPENAI_MODEL").ok())
         .unwrap_or_else(|| "deepseek-chat".to_string());
 
     let prompt = format!(
@@ -481,35 +479,24 @@ async fn test_openai_config(
     // Debug: Log what we received from frontend
     eprintln!("=== test_openai_config Debug ===");
     eprintln!("api_token from frontend: {:?}", api_token);
-    eprintln!("api_token length: {:?}", api_token.as_ref().map(|s| s.len()));
+    eprintln!("api_base_url from frontend: {:?}", api_base_url);
+    eprintln!("api_model from frontend: {:?}", api_model);
     
+    // 只使用用户配置的值，不回退到环境变量
     let api_key = api_token
         .and_then(|s| {
             let trimmed = s.trim().to_string();
-            eprintln!("After trim, length: {}", trimmed.len());
+            eprintln!("After trim, token length: {}", trimmed.len());
             if trimmed.is_empty() { 
-                eprintln!("Token is empty after trim, will try env var");
+                eprintln!("Token is empty after trim");
                 None 
             } else { 
                 eprintln!("Using token from frontend (first 10 chars): {}", &trimmed.chars().take(10).collect::<String>());
                 Some(trimmed) 
             }
         })
-        .or_else(|| {
-            match std::env::var("OPENAI_API_KEY") {
-                Ok(env_key) => {
-                    eprintln!("Using token from environment variable (first 10 chars): {}", &env_key.chars().take(10).collect::<String>());
-                    Some(env_key)
-                }
-                Err(_) => {
-                    eprintln!("No environment variable OPENAI_API_KEY found");
-                    None
-                }
-            }
-        })
-        .ok_or_else(|| "OPENAI_API_KEY is not set and no token provided".to_string())?;
+        .ok_or_else(|| "请先在设置页配置 OpenAI Token".to_string())?;
     
-    eprintln!("Final API key (first 10 chars): {}", &api_key.chars().take(10).collect::<String>());
     eprintln!("Final API key length: {}", api_key.len());
 
     let base_url = api_base_url
@@ -517,7 +504,6 @@ async fn test_openai_config(
             let trimmed = s.trim().to_string();
             if trimmed.is_empty() { None } else { Some(trimmed) }
         })
-        .or_else(|| std::env::var("OPENAI_BASE_URL").ok())
         .unwrap_or_else(|| "https://api.deepseek.com/v1".to_string());
 
     let model = api_model
@@ -525,7 +511,6 @@ async fn test_openai_config(
             let trimmed = s.trim().to_string();
             if trimmed.is_empty() { None } else { Some(trimmed) }
         })
-        .or_else(|| std::env::var("OPENAI_MODEL").ok())
         .unwrap_or_else(|| "deepseek-chat".to_string());
 
     let prompt = "请仅回复大写字母 OK".to_string();
