@@ -1,0 +1,155 @@
+/// Fallback CSS styles for custom CSS themes
+pub fn get_fallback_css() -> &'static str {
+    r#"
+/* Fallback styles for custom CSS themes */
+.wechat-content {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #333;
+  word-wrap: break-word;
+  padding: 16px;
+}
+
+h1 {
+  font-size: 24px;
+  font-weight: bold;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #eaeaea;
+  padding-bottom: 5px;
+}
+
+h2 {
+  font-size: 20px;
+  font-weight: bold;
+  margin-top: 18px;
+  margin-bottom: 10px;
+  border-left: 4px solid #07c160;
+  padding-left: 10px;
+}
+
+h3 {
+  font-size: 18px;
+  font-weight: bold;
+  margin-top: 16px;
+  margin-bottom: 10px;
+}
+
+p {
+  margin-bottom: 16px;
+  text-align: justify;
+}
+
+blockquote {
+  margin: 16px 0;
+  padding: 10px 16px;
+  background-color: #f7f7f7;
+  border-left: 4px solid #d0d0d0;
+  color: #666;
+  font-size: 15px;
+}
+
+ul, ol {
+  margin-bottom: 16px;
+  padding-left: 24px;
+}
+
+li {
+  margin-bottom: 4px;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 16px auto;
+  border-radius: 4px;
+}
+
+code {
+  font-family: Consolas, Monaco, "Courier New", monospace;
+  background-color: #f0f0f0;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 14px;
+  color: #d63384;
+}
+
+pre {
+  background-color: #f6f8fa;
+  padding: 16px;
+  overflow: auto;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+pre code {
+  background-color: transparent;
+  padding: 0;
+  color: #333;
+  font-size: 13px;
+}
+
+a {
+  color: #576b95;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+th, td {
+  border: 1px solid #dfe2e5;
+  padding: 6px 13px;
+}
+
+th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+tr:nth-child(2n) {
+  background-color: #f8f8f8;
+}
+
+/* Footnote styles - IMPORTANT: Always include these */
+.footnote-ref {
+  color: #07c160;
+  font-size: 0.8em;
+  vertical-align: super;
+  margin: 0 2px;
+  font-weight: bold;
+}
+
+.footnotes {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #eaeaea;
+  font-size: 14px;
+}
+
+.footnotes ol {
+  padding-left: 20px;
+  margin: 0;
+}
+
+.footnotes li {
+  margin-bottom: 8px;
+  color: #666;
+}
+
+.footnote-url {
+  color: #576b95;
+  word-break: break-all;
+}
+"#
+}
