@@ -61,33 +61,3 @@ pub struct WechatUploadResult {
     pub markdown: String,
     pub items: Vec<WechatUploadResultEntry>,
 }
-
-// ============ Gemini API structures ============
-
-#[derive(Serialize)]
-pub struct GeminiImageRequest {
-    pub instances: Vec<GeminiImageInstance>,
-    pub parameters: GeminiImageParameters,
-}
-
-#[derive(Serialize)]
-pub struct GeminiImageInstance {
-    pub prompt: String,
-}
-
-#[derive(Serialize)]
-pub struct GeminiImageParameters {
-    #[serde(rename = "sampleCount")]
-    pub sample_count: u32,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct GeminiImageResponse {
-    pub predictions: Vec<GeminiPrediction>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct GeminiPrediction {
-    #[serde(rename = "bytesBase64Encoded")]
-    pub bytes_base64_encoded: String,
-}

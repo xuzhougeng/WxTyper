@@ -2,8 +2,6 @@ use base64::{engine::general_purpose, Engine as _};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-use crate::models::{GeminiImageInstance, GeminiImageParameters, GeminiImageRequest, GeminiImageResponse};
-
 // ==================== 文本生成 API 结构体 ====================
 
 #[derive(Debug, Serialize)]
@@ -65,6 +63,7 @@ pub async fn generate_cover_image(
     gemini_api_key: Option<String>,
     gemini_api_url: Option<String>,
     gemini_model: Option<String>,
+    custom_prompt: Option<String>,
     base_dir: Option<String>,
     assets_dir: String,
 ) -> Result<String, String> {
@@ -89,7 +88,13 @@ pub async fn generate_cover_image(
         })
         .unwrap_or_else(|| "gemini-3-pro-image-preview".to_string());
 
-    let prompt = generate_image_prompt_from_markdown(&markdown);
+    // Use custom prompt if provided, otherwise generate from markdown
+    let prompt = custom_prompt
+        .and_then(|s| {
+            let trimmed = s.trim().to_string();
+            if trimmed.is_empty() { None } else { Some(trimmed) }
+        })
+        .unwrap_or_else(|| generate_image_prompt_from_markdown(&markdown));
 
     let request = GenerateContentRequest {
         contents: vec![GeminiContent {

@@ -21,6 +21,8 @@ interface SettingsPaneProps {
   setGeminiApiUrl: (value: string) => void;
   geminiModel: string;
   setGeminiModel: (value: string) => void;
+  customImagePrompt: string;
+  setCustomImagePrompt: (value: string) => void;
   handleTestOpenai: () => void;
   handleTestWechat: () => void;
   isTestingOpenai: boolean;
@@ -53,6 +55,8 @@ export function SettingsPane({
   setGeminiApiUrl,
   geminiModel,
   setGeminiModel,
+  customImagePrompt,
+  setCustomImagePrompt,
   handleTestOpenai,
   handleTestWechat,
   isTestingOpenai,
@@ -205,6 +209,17 @@ export function SettingsPane({
             placeholder="Gemini API 密钥"
           />
           <div className="settings-field-hint">用于调用 Gemini API，获取方式：访问 Google AI Studio</div>
+        </div>
+        <div className="settings-field">
+          <label className="settings-label">自定义图片生成提示词</label>
+          <textarea
+            className="input settings-input"
+            value={customImagePrompt}
+            onChange={(e) => setCustomImagePrompt(e.target.value)}
+            placeholder="例如：Create a modern, minimalist cover image with vibrant colors..."
+            rows={4}
+          />
+          <div className="settings-field-hint">自定义生成封面图的提示词，留空则根据文章标题自动生成</div>
         </div>
       </div>
 

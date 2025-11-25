@@ -93,6 +93,7 @@ function App() {
   const [geminiApiKey, setGeminiApiKey] = usePersistentState("geminiApiKey", "");
   const [geminiApiUrl, setGeminiApiUrl] = usePersistentState("geminiApiUrl", "");
   const [geminiModel, setGeminiModel] = usePersistentState("geminiModel", "");
+  const [customImagePrompt, setCustomImagePrompt] = usePersistentState("customImagePrompt", "");
   const [isUploadingWechatImages, setIsUploadingWechatImages] = useState(false);
   const [isGeneratingCoverImage, setIsGeneratingCoverImage] = useState(false);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
@@ -514,11 +515,11 @@ function App() {
       }
 
       setIsGeneratingCoverImage(true);
-      const effectiveUrl = geminiApiUrl && geminiApiUrl.trim().length > 0 
-        ? geminiApiUrl.trim() 
+      const effectiveUrl = geminiApiUrl && geminiApiUrl.trim().length > 0
+        ? geminiApiUrl.trim()
         : "https://generativelanguage.googleapis.com/v1beta/models";
-      const effectiveModel = geminiModel && geminiModel.trim().length > 0 
-        ? geminiModel.trim() 
+      const effectiveModel = geminiModel && geminiModel.trim().length > 0
+        ? geminiModel.trim()
         : "imagen-3.0-generate-001";
       appendDebugLog(`开始使用 Gemini API 生成微信公众号题图...`);
       appendDebugLog(`API端点: ${effectiveUrl}, 模型: ${effectiveModel}`);
@@ -533,6 +534,7 @@ function App() {
         geminiApiKey: geminiApiKey.trim(),
         geminiApiUrl: geminiApiUrl.trim() || undefined,
         geminiModel: geminiModel.trim() || undefined,
+        customPrompt: customImagePrompt.trim() || undefined,
         baseDir,
         assetsDir,
       });
@@ -613,6 +615,8 @@ function App() {
           setGeminiApiUrl={setGeminiApiUrl}
           geminiModel={geminiModel}
           setGeminiModel={setGeminiModel}
+          customImagePrompt={customImagePrompt}
+          setCustomImagePrompt={setCustomImagePrompt}
           handleTestOpenai={handleTestOpenai}
           handleTestWechat={handleTestWechat}
           isTestingOpenai={isTestingOpenai}
