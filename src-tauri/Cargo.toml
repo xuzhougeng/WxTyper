@@ -29,3 +29,6 @@ reqwest = { version = "0.11", features = ["json", "rustls-tls", "multipart"] }
 regex = "1"
 once_cell = "1.19.0"
 base64 = "0.21"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

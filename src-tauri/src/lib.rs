@@ -78,6 +78,7 @@ pub fn run() {
             openai::generate_summary,
             openai::test_openai_config,
             gemini::generate_cover_image,
+            gemini::test_gemini_config,
             wechat::wechat_upload_and_replace_images,
             wechat::test_wechat_access_token,
             image::localize_images_to_assets
