@@ -90,7 +90,11 @@ function App() {
   const [openaiModel, setOpenaiModel] = usePersistentState("openaiModel", "");
   const [wechatAppId, setWechatAppId] = usePersistentState("wechatAppId", "");
   const [wechatAppSecret, setWechatAppSecret] = usePersistentState("wechatAppSecret", "");
+  const [geminiApiKey, setGeminiApiKey] = usePersistentState("geminiApiKey", "");
+  const [geminiApiUrl, setGeminiApiUrl] = usePersistentState("geminiApiUrl", "");
+  const [geminiModel, setGeminiModel] = usePersistentState("geminiModel", "");
   const [isUploadingWechatImages, setIsUploadingWechatImages] = useState(false);
+  const [isGeneratingCoverImage, setIsGeneratingCoverImage] = useState(false);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
   const [openaiTestStatus, setOpenaiTestStatus] = useState("");
   const [wechatTestStatus, setWechatTestStatus] = useState("");
@@ -488,6 +492,67 @@ function App() {
     }, 2000);
   };
 
+  const handleGenerateCoverImage = async () => {
+    try {
+      const isTauri = typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__;
+      if (!isTauri) {
+        alert("生成题图仅在 Tauri 应用中可用。");
+        appendDebugLog("生成题图失败：当前不在 Tauri 环境中。");
+        return;
+      }
+
+      if (!geminiApiKey || geminiApiKey.trim().length === 0) {
+        alert("请先在设置页配置 Gemini API Key。");
+        setActivePage("settings");
+        return;
+      }
+
+      if (!currentFilePath) {
+        alert("请先保存 Markdown 文件，再生成题图。");
+        appendDebugLog("生成题图失败：当前文件尚未保存，无法确定图片保存目录。");
+        return;
+      }
+
+      setIsGeneratingCoverImage(true);
+      const effectiveUrl = geminiApiUrl && geminiApiUrl.trim().length > 0 
+        ? geminiApiUrl.trim() 
+        : "https://generativelanguage.googleapis.com/v1beta/models";
+      const effectiveModel = geminiModel && geminiModel.trim().length > 0 
+        ? geminiModel.trim() 
+        : "imagen-3.0-generate-001";
+      appendDebugLog(`开始使用 Gemini API 生成微信公众号题图...`);
+      appendDebugLog(`API端点: ${effectiveUrl}, 模型: ${effectiveModel}`);
+
+      let baseDir: string | null = null;
+      if (currentFilePath) {
+        baseDir = currentFilePath.replace(/[\\/][^\\/]*$/, "");
+      }
+
+      const relativePath = await invoke<string>("generate_cover_image", {
+        markdown,
+        geminiApiKey: geminiApiKey.trim(),
+        geminiApiUrl: geminiApiUrl.trim() || undefined,
+        geminiModel: geminiModel.trim() || undefined,
+        baseDir,
+        assetsDir,
+      });
+
+      // 在markdown开头插入图片
+      const imageMarkdown = `![封面图](${relativePath})\n\n`;
+      const newMarkdown = imageMarkdown + markdown;
+      setMarkdown(newMarkdown);
+
+      appendDebugLog(`题图生成成功，已保存到 ${relativePath}`);
+      alert(`题图已生成并插入到文档开头！\n保存位置：${relativePath}`);
+    } catch (e) {
+      console.error("Generate cover image failed", e);
+      appendDebugLog("生成题图失败: " + String(e));
+      alert("生成题图失败: " + String(e));
+    } finally {
+      setIsGeneratingCoverImage(false);
+    }
+  };
+
   const toggleSettings = () => {
     setActivePage((prev) => (prev === "settings" ? "editor" : "settings"));
   };
@@ -504,12 +569,14 @@ function App() {
         handleOpenMarkdown={handleOpenMarkdown}
         handleSaveMarkdown={handleSaveMarkdown}
         handleGenerateSummary={handleGenerateSummary}
+        handleGenerateCoverImage={handleGenerateCoverImage}
         handleLocalizeImages={handleLocalizeImages}
         handleExportMermaidToPng={handleExportMermaidToPng}
         handleUploadImagesToWechat={handleUploadImagesToWechat}
         copyToClipboard={copyToClipboard}
         toggleSettings={toggleSettings}
         isSummarizing={isSummarizing}
+        isGeneratingCoverImage={isGeneratingCoverImage}
         isUploadingWechatImages={isUploadingWechatImages}
         activePage={activePage}
       />
@@ -540,6 +607,12 @@ function App() {
           setWechatAppId={setWechatAppId}
           wechatAppSecret={wechatAppSecret}
           setWechatAppSecret={setWechatAppSecret}
+          geminiApiKey={geminiApiKey}
+          setGeminiApiKey={setGeminiApiKey}
+          geminiApiUrl={geminiApiUrl}
+          setGeminiApiUrl={setGeminiApiUrl}
+          geminiModel={geminiModel}
+          setGeminiModel={setGeminiModel}
           handleTestOpenai={handleTestOpenai}
           handleTestWechat={handleTestWechat}
           isTestingOpenai={isTestingOpenai}

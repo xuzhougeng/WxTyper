@@ -15,6 +15,12 @@ interface SettingsPaneProps {
   setWechatAppId: (value: string) => void;
   wechatAppSecret: string;
   setWechatAppSecret: (value: string) => void;
+  geminiApiKey: string;
+  setGeminiApiKey: (value: string) => void;
+  geminiApiUrl: string;
+  setGeminiApiUrl: (value: string) => void;
+  geminiModel: string;
+  setGeminiModel: (value: string) => void;
   handleTestOpenai: () => void;
   handleTestWechat: () => void;
   isTestingOpenai: boolean;
@@ -41,6 +47,12 @@ export function SettingsPane({
   setWechatAppId,
   wechatAppSecret,
   setWechatAppSecret,
+  geminiApiKey,
+  setGeminiApiKey,
+  geminiApiUrl,
+  setGeminiApiUrl,
+  geminiModel,
+  setGeminiModel,
   handleTestOpenai,
   handleTestWechat,
   isTestingOpenai,
@@ -156,6 +168,43 @@ export function SettingsPane({
             {isTestingWechat ? "测试中..." : "测试获取 access_token"}
           </button>
           {wechatTestStatus && <span className="settings-test-status">{wechatTestStatus}</span>}
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <div className="settings-section-title">Google Gemini 图片生成配置</div>
+        <div className="settings-field">
+          <label className="settings-label">API 端点</label>
+          <input
+            className="input settings-input"
+            type="text"
+            value={geminiApiUrl}
+            onChange={(e) => setGeminiApiUrl(e.target.value)}
+            placeholder="默认：https://generativelanguage.googleapis.com/v1beta/models"
+          />
+          <div className="settings-field-hint">API 端点 URL（不包含模型名称），留空使用默认端点</div>
+        </div>
+        <div className="settings-field">
+          <label className="settings-label">模型名称</label>
+          <input
+            className="input settings-input"
+            type="text"
+            value={geminiModel}
+            onChange={(e) => setGeminiModel(e.target.value)}
+            placeholder="默认：imagen-3.0-generate-001"
+          />
+          <div className="settings-field-hint">图片生成模型名称，例如：gemini-3-pro-image-preview</div>
+        </div>
+        <div className="settings-field">
+          <label className="settings-label">API Key</label>
+          <input
+            className="input settings-input"
+            type="password"
+            value={geminiApiKey}
+            onChange={(e) => setGeminiApiKey(e.target.value)}
+            placeholder="Gemini API 密钥"
+          />
+          <div className="settings-field-hint">用于调用 Gemini API，获取方式：访问 Google AI Studio</div>
         </div>
       </div>
 

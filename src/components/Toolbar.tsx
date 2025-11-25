@@ -1,4 +1,4 @@
-import { FileText, Save, Palette, Image as IconImage, Sparkles, FolderDown, Download, Share, Copy, Settings } from "lucide-react";
+import { FileText, Save, Palette, Image as IconImage, Sparkles, ImagePlus, FolderDown, Download, Share, Copy, Settings } from "lucide-react";
 import { builtinThemes } from "../constants/themes";
 import type { CustomTheme } from "../hooks/useMarkdownConverter";
 
@@ -12,12 +12,14 @@ interface ToolbarProps {
   handleOpenMarkdown: () => void;
   handleSaveMarkdown: () => void;
   handleGenerateSummary: () => void;
+  handleGenerateCoverImage: () => void;
   handleLocalizeImages: () => void;
   handleExportMermaidToPng: () => void;
   handleUploadImagesToWechat: () => void;
   copyToClipboard: () => void;
   toggleSettings: () => void;
   isSummarizing: boolean;
+  isGeneratingCoverImage: boolean;
   isUploadingWechatImages: boolean;
   activePage: "editor" | "settings";
 }
@@ -32,12 +34,14 @@ export function Toolbar({
   handleOpenMarkdown,
   handleSaveMarkdown,
   handleGenerateSummary,
+  handleGenerateCoverImage,
   handleLocalizeImages,
   handleExportMermaidToPng,
   handleUploadImagesToWechat,
   copyToClipboard,
   toggleSettings,
   isSummarizing,
+  isGeneratingCoverImage,
   isUploadingWechatImages,
   activePage,
 }: ToolbarProps) {
@@ -127,6 +131,15 @@ export function Toolbar({
           title="Generate AI Summary"
         >
           <Sparkles size={18} color={isSummarizing ? "var(--primary)" : "currentColor"} />
+        </button>
+
+        <button
+          className="btn btn-icon"
+          onClick={handleGenerateCoverImage}
+          disabled={isGeneratingCoverImage}
+          title="生成微信公众号题图（使用 Gemini AI）"
+        >
+          <ImagePlus size={18} color={isGeneratingCoverImage ? "var(--primary)" : "currentColor"} />
         </button>
 
         <div className="divider-vertical"></div>
