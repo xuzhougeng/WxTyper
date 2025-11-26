@@ -45,6 +45,8 @@ struct GenerationConfig {
     top_p: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     top_k: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    response_modalities: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -104,10 +106,8 @@ pub async fn generate_cover_image(
             }],
         }],
         generation_config: Some(GenerationConfig {
-            temperature: Some(0.7),
-            max_output_tokens: Some(1024),
-            top_p: Some(0.95),
-            top_k: Some(40),
+            response_modalities: Some(vec!["TEXT".to_string(), "IMAGE".to_string()]),
+            ..Default::default()
         }),
     };
 
@@ -218,8 +218,7 @@ pub async fn test_gemini_config(
             }],
         }],
         generation_config: Some(GenerationConfig {
-            temperature: Some(0.7),
-            max_output_tokens: Some(512),
+            response_modalities: Some(vec!["TEXT".to_string(), "IMAGE".to_string()]),
             ..Default::default()
         }),
     };
@@ -313,10 +312,8 @@ mod tests {
                 }],
             }],
             generation_config: Some(GenerationConfig {
-                temperature: Some(0.7),
-                max_output_tokens: Some(1024),
-                top_p: Some(0.95),
-                top_k: Some(40),
+                response_modalities: Some(vec!["TEXT".to_string(), "IMAGE".to_string()]),
+                ..Default::default()
             }),
         };
 
