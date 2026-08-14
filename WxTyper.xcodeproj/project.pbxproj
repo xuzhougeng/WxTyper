@@ -1,0 +1,495 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		08BD805598322676BEFE3EFC /* MarkdownRendererTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A78B8D9EAC4FF3588D475280 /* MarkdownRendererTests.swift */; };
+		14F219DEA9FF657C4C1411EC /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D937E7249A5EC22C53E81FC /* AppSettings.swift */; };
+		2B35F231EEA8DF4EA735CF8D /* SampleDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84C9A536A2E4A490E4B9B33D /* SampleDocument.swift */; };
+		37300F754B19227FAA7F1271 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 812AD14E3B0734EC9DE0D565 /* ContentView.swift */; };
+		3C826B8FF9D5496A8235218A /* PreviewWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A27581C4A26897402A0DBA7 /* PreviewWebView.swift */; };
+		61AFAEC6B843C96FE19E2DF8 /* WxTyperApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E18EA1E412F1E7491A736EA7 /* WxTyperApp.swift */; };
+		6FB3247C6CE496D2D4454607 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E9677263AFCD2768C7C0CB0 /* SettingsView.swift */; };
+		913E78F18FBCAC0DD950CC44 /* ImageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4DAC7D312C7BA00B95CB3D9 /* ImageService.swift */; };
+		958C5B7A2A4C3880453C816B /* EditorTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEE8B50041C7B60AC1CC5C84 /* EditorTextView.swift */; };
+		9F4B3005DC0E3A0CE658B4A0 /* AppError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03D6BC147D0D06DA47A96772 /* AppError.swift */; };
+		A8D73F517AAC44A4A14F1714 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 460673D0740E592F6439E13E /* KeychainStore.swift */; };
+		CA279937753FA9738FFF30BB /* EditorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44CEA905CCA9ADE03264D814 /* EditorViewModel.swift */; };
+		CF37D90AD44F938932A86429 /* WeChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EC07ADFC1596094560470DA /* WeChatService.swift */; };
+		EB28B92E3F50BD0E027A6CB0 /* MarkdownRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB9581B7AEDE896A16AC935F /* MarkdownRenderer.swift */; };
+		FE890D60B56738544F350D28 /* OpenAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DEEA3D11705EBBFEAAC4270 /* OpenAIService.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		D2784DA42265A43482C725F0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 475B51B43E1D7DB5C6B126D4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AB3842654E00B11FFA8C9D61;
+			remoteInfo = WxTyper;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		03D6BC147D0D06DA47A96772 /* AppError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppError.swift; sourceTree = "<group>"; };
+		3A27581C4A26897402A0DBA7 /* PreviewWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewWebView.swift; sourceTree = "<group>"; };
+		3E9677263AFCD2768C7C0CB0 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		44CEA905CCA9ADE03264D814 /* EditorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorViewModel.swift; sourceTree = "<group>"; };
+		460673D0740E592F6439E13E /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		4EC07ADFC1596094560470DA /* WeChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeChatService.swift; sourceTree = "<group>"; };
+		5DEEA3D11705EBBFEAAC4270 /* OpenAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIService.swift; sourceTree = "<group>"; };
+		812AD14E3B0734EC9DE0D565 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		84C9A536A2E4A490E4B9B33D /* SampleDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleDocument.swift; sourceTree = "<group>"; };
+		9D937E7249A5EC22C53E81FC /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		A78B8D9EAC4FF3588D475280 /* MarkdownRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownRendererTests.swift; sourceTree = "<group>"; };
+		B4DAC7D312C7BA00B95CB3D9 /* ImageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageService.swift; sourceTree = "<group>"; };
+		CD535A53AD1ADE1A4B6B178F /* WxTyperTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WxTyperTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CF3748164C983F427B012ADF /* WxTyper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WxTyper.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DB9581B7AEDE896A16AC935F /* MarkdownRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownRenderer.swift; sourceTree = "<group>"; };
+		DEE8B50041C7B60AC1CC5C84 /* EditorTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorTextView.swift; sourceTree = "<group>"; };
+		E18EA1E412F1E7491A736EA7 /* WxTyperApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WxTyperApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		084A4508898DA77137F7B22C /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				B4DAC7D312C7BA00B95CB3D9 /* ImageService.swift */,
+				460673D0740E592F6439E13E /* KeychainStore.swift */,
+				DB9581B7AEDE896A16AC935F /* MarkdownRenderer.swift */,
+				5DEEA3D11705EBBFEAAC4270 /* OpenAIService.swift */,
+				4EC07ADFC1596094560470DA /* WeChatService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		4B15702004444296FC37D713 /* WxTyperTests */ = {
+			isa = PBXGroup;
+			children = (
+				A78B8D9EAC4FF3588D475280 /* MarkdownRendererTests.swift */,
+			);
+			path = WxTyperTests;
+			sourceTree = "<group>";
+		};
+		653966BDF5A80EBAD6CC9F4E /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				812AD14E3B0734EC9DE0D565 /* ContentView.swift */,
+				DEE8B50041C7B60AC1CC5C84 /* EditorTextView.swift */,
+				3A27581C4A26897402A0DBA7 /* PreviewWebView.swift */,
+				3E9677263AFCD2768C7C0CB0 /* SettingsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		668CEB5137059020512A151F /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				03D6BC147D0D06DA47A96772 /* AppError.swift */,
+				84C9A536A2E4A490E4B9B33D /* SampleDocument.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		673BFD7AC01CA58E18C3EBA7 /* WxTyper */ = {
+			isa = PBXGroup;
+			children = (
+				E18EA1E412F1E7491A736EA7 /* WxTyperApp.swift */,
+				C32951E658F8132E829BD844 /* Models */,
+				084A4508898DA77137F7B22C /* Services */,
+				668CEB5137059020512A151F /* Utilities */,
+				653966BDF5A80EBAD6CC9F4E /* Views */,
+			);
+			path = WxTyper;
+			sourceTree = "<group>";
+		};
+		7D7E7DDD43077B391C496575 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				CF3748164C983F427B012ADF /* WxTyper.app */,
+				CD535A53AD1ADE1A4B6B178F /* WxTyperTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		81A5AC1CB6BB198255AD05C2 /* Native */ = {
+			isa = PBXGroup;
+			children = (
+				673BFD7AC01CA58E18C3EBA7 /* WxTyper */,
+				4B15702004444296FC37D713 /* WxTyperTests */,
+			);
+			path = Native;
+			sourceTree = "<group>";
+		};
+		83965F329429A60723DCFFA3 = {
+			isa = PBXGroup;
+			children = (
+				81A5AC1CB6BB198255AD05C2 /* Native */,
+				7D7E7DDD43077B391C496575 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		C32951E658F8132E829BD844 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				9D937E7249A5EC22C53E81FC /* AppSettings.swift */,
+				44CEA905CCA9ADE03264D814 /* EditorViewModel.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0691DE92A57236F57CA419DC /* WxTyperTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BCF703ABDCCE040171C3F94F /* Build configuration list for PBXNativeTarget "WxTyperTests" */;
+			buildPhases = (
+				0652C8C1BBCC759542B3917F /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D9AD19FFAF6D018BFB841648 /* PBXTargetDependency */,
+			);
+			name = WxTyperTests;
+			packageProductDependencies = (
+			);
+			productName = WxTyperTests;
+			productReference = CD535A53AD1ADE1A4B6B178F /* WxTyperTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		AB3842654E00B11FFA8C9D61 /* WxTyper */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3B67E03E69BE820F968D720F /* Build configuration list for PBXNativeTarget "WxTyper" */;
+			buildPhases = (
+				13939CC11C637798B8428023 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WxTyper;
+			packageProductDependencies = (
+			);
+			productName = WxTyper;
+			productReference = CF3748164C983F427B012ADF /* WxTyper.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		475B51B43E1D7DB5C6B126D4 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					0691DE92A57236F57CA419DC = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					AB3842654E00B11FFA8C9D61 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 6AECFF14222027C16B87019E /* Build configuration list for PBXProject "WxTyper" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 83965F329429A60723DCFFA3;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AB3842654E00B11FFA8C9D61 /* WxTyper */,
+				0691DE92A57236F57CA419DC /* WxTyperTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0652C8C1BBCC759542B3917F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				08BD805598322676BEFE3EFC /* MarkdownRendererTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		13939CC11C637798B8428023 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9F4B3005DC0E3A0CE658B4A0 /* AppError.swift in Sources */,
+				14F219DEA9FF657C4C1411EC /* AppSettings.swift in Sources */,
+				37300F754B19227FAA7F1271 /* ContentView.swift in Sources */,
+				958C5B7A2A4C3880453C816B /* EditorTextView.swift in Sources */,
+				CA279937753FA9738FFF30BB /* EditorViewModel.swift in Sources */,
+				913E78F18FBCAC0DD950CC44 /* ImageService.swift in Sources */,
+				A8D73F517AAC44A4A14F1714 /* KeychainStore.swift in Sources */,
+				EB28B92E3F50BD0E027A6CB0 /* MarkdownRenderer.swift in Sources */,
+				FE890D60B56738544F350D28 /* OpenAIService.swift in Sources */,
+				3C826B8FF9D5496A8235218A /* PreviewWebView.swift in Sources */,
+				2B35F231EEA8DF4EA735CF8D /* SampleDocument.swift in Sources */,
+				6FB3247C6CE496D2D4454607 /* SettingsView.swift in Sources */,
+				CF37D90AD44F938932A86429 /* WeChatService.swift in Sources */,
+				61AFAEC6B843C96FE19E2DF8 /* WxTyperApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D9AD19FFAF6D018BFB841648 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AB3842654E00B11FFA8C9D61 /* WxTyper */;
+			targetProxy = D2784DA42265A43482C725F0 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		05E77795074080E21FA3989F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Native/WxTyper/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.xuzhougeng.wxtyper;
+				PRODUCT_NAME = WxTyper;
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		3A06B5BEBC5CB599768DEE3F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.xuzhougeng.wxtyper.tests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/WxTyper.app/Contents/MacOS/WxTyper";
+			};
+			name = Debug;
+		};
+		3A7E631E6C047AD886BEDB47 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Native/WxTyper/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.xuzhougeng.wxtyper;
+				PRODUCT_NAME = WxTyper;
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		4A3EBB976001CDF49CFD9981 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		7ADD4F8723B00A93961D6D19 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.xuzhougeng.wxtyper.tests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/WxTyper.app/Contents/MacOS/WxTyper";
+			};
+			name = Release;
+		};
+		E07D6BCBA3FD34B12B2A1020 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		3B67E03E69BE820F968D720F /* Build configuration list for PBXNativeTarget "WxTyper" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3A7E631E6C047AD886BEDB47 /* Debug */,
+				05E77795074080E21FA3989F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		6AECFF14222027C16B87019E /* Build configuration list for PBXProject "WxTyper" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4A3EBB976001CDF49CFD9981 /* Debug */,
+				E07D6BCBA3FD34B12B2A1020 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BCF703ABDCCE040171C3F94F /* Build configuration list for PBXNativeTarget "WxTyperTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3A06B5BEBC5CB599768DEE3F /* Debug */,
+				7ADD4F8723B00A93961D6D19 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 475B51B43E1D7DB5C6B126D4 /* Project object */;
+}
