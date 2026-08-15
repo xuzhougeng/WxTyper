@@ -106,6 +106,7 @@ final class EditorViewModel: ObservableObject {
     }
 
     func newDocument() {
+        selectedRange = NSRange(location: 0, length: 0)
         markdown = "# 新文章\n\n开始写作吧。\n"
         documentURL = nil
         lastSavedMarkdown = markdown
@@ -122,6 +123,7 @@ final class EditorViewModel: ObservableObject {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             let content = try String(contentsOf: url, encoding: .utf8)
+            selectedRange = NSRange(location: 0, length: 0)
             documentURL = url
             markdown = content
             lastSavedMarkdown = content

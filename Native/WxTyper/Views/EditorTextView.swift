@@ -29,24 +29,52 @@ struct EditorTextView: NSViewRepresentable {
         textView.isHorizontallyResizable = false
         textView.textContainer?.widthTracksTextView = true
         textView.textContainer?.containerSize = NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude)
+        textView.setAccessibilityLabel("Markdown 编辑器")
         scrollView.documentView = textView
         context.coordinator.textView = textView
+        context.coordinator.prepareInitialPosition(in: scrollView)
         return scrollView
     }
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         context.coordinator.parent = self
-        guard let textView = context.coordinator.textView, textView.string != text else { return }
-        let range = textView.selectedRange()
-        textView.string = text
-        textView.setSelectedRange(NSRange(location: min(range.location, (text as NSString).length), length: 0))
+        guard let textView = context.coordinator.textView else { return }
+        if textView.string != text {
+            textView.string = text
+            let length = (text as NSString).length
+            let location = min(selectedRange.location, length)
+            let selectionLength = min(selectedRange.length, max(0, length - location))
+            let range = NSRange(location: location, length: selectionLength)
+            textView.setSelectedRange(range)
+            textView.scrollRangeToVisible(range)
+        }
+        context.coordinator.prepareInitialPosition(in: scrollView)
     }
 
     final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: EditorTextView
         weak var textView: NSTextView?
+        private var didScheduleInitialPosition = false
 
         init(parent: EditorTextView) { self.parent = parent }
+
+        func prepareInitialPosition(in scrollView: NSScrollView) {
+            guard !didScheduleInitialPosition, let textView else { return }
+            didScheduleInitialPosition = true
+            DispatchQueue.main.async {
+                let length = (textView.string as NSString).length
+                let location = min(self.parent.selectedRange.location, length)
+                let selectionLength = min(self.parent.selectedRange.length, max(0, length - location))
+                let range = NSRange(location: location, length: selectionLength)
+                textView.setSelectedRange(range)
+                textView.scrollRangeToVisible(range)
+                if location == 0 {
+                    scrollView.contentView.scroll(to: .zero)
+                    scrollView.reflectScrolledClipView(scrollView.contentView)
+                }
+                textView.window?.makeFirstResponder(textView)
+            }
+        }
 
         func textDidChange(_ notification: Notification) {
             guard let textView else { return }

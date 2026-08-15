@@ -11,7 +11,7 @@ struct WxTyperApp: App {
                 .frame(minWidth: 1_000, minHeight: 680)
         }
         .defaultSize(width: 1_280, height: 820)
-        .windowToolbarStyle(.unified(showsTitle: true))
+        .windowToolbarStyle(.unifiedCompact(showsTitle: true))
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("新建") { model.newDocument() }
