@@ -27,3 +27,9 @@ xcuserdata/
 *.njsproj
 *.sln
 *.sw?
+
+# Windows native build and local QA artifacts
+**/bin/
+**/obj/
+test-results/
+.vs/

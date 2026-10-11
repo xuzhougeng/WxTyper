@@ -1,0 +1,10 @@
+:root { color-scheme: light; }
+html { background: #f3f4f6; }
+body { margin: 0; padding: 28px 24px; }
+.wechat-content { box-sizing: border-box; max-width: 680px; min-height: calc(100vh - 56px); margin: 0 auto; padding: 28px 34px; background: white; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; font-size: 16px; line-height: 1.7; color: #333; overflow-wrap: anywhere; }
+img { max-width: 100%; height: auto; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.mermaid { text-align: center; margin: 20px 0; }
+.mermaid svg { max-width: 100%; height: auto; }
+.footnote-ref { vertical-align: super; font-size: .8em; }
+@media (max-width: 500px) { body { padding: 18px 14px; } .wechat-content { padding: 20px 24px; } }

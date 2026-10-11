@@ -1,0 +1,26 @@
+name: Windows native
+on:
+  push:
+    paths: ['Native/Windows/**', 'Native/WxTyper/Resources/Themes/**', 'Scripts/build-windows.ps1', '.github/workflows/windows.yml']
+  pull_request:
+    paths: ['Native/Windows/**', 'Native/WxTyper/Resources/Themes/**', 'Scripts/build-windows.ps1', '.github/workflows/windows.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Core regression checks
+        run: dotnet run --project Native/Windows/WxTyper.Tests/WxTyper.Tests.csproj -c Release
+      - name: Publish self-contained WinUI application
+        shell: pwsh
+        run: ./Scripts/build-windows.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WxTyper-Windows-x64
+          path: build/windows/
