@@ -4,32 +4,20 @@ set -euo pipefail
 SCRIPT_DIR="${0:A:h}"
 PROJECT_DIR="${SCRIPT_DIR:h}"
 APP_DIR="${PROJECT_DIR}/build/WxTyper.app"
-CONTENTS_DIR="${APP_DIR}/Contents"
-MACOS_DIR="${CONTENTS_DIR}/MacOS"
-RESOURCES_DIR="${CONTENTS_DIR}/Resources"
-SDK_PATH="$(xcrun --sdk macosx --show-sdk-path)"
+VERSION="$(tr -d '[:space:]' < "${PROJECT_DIR}/VERSION")"
 
 rm -rf "${APP_DIR}"
-mkdir -p "${MACOS_DIR}" "${RESOURCES_DIR}"
+xcodebuild -quiet \
+  -project "${PROJECT_DIR}/WxTyper.xcodeproj" \
+  -scheme WxTyper -configuration Release \
+  -destination 'generic/platform=macOS' \
+  -derivedDataPath "${PROJECT_DIR}/build/macos" \
+  ARCHS='arm64 x86_64' ONLY_ACTIVE_ARCH=NO \
+  CODE_SIGNING_ALLOWED=NO MARKETING_VERSION="${VERSION}" build
 
-SOURCE_FILES=("${PROJECT_DIR}"/Native/WxTyper/**/*.swift(N))
-
-xcrun swiftc \
-  -emit-executable \
-  -parse-as-library \
-  -O \
-  -target arm64-apple-macosx14.0 \
-  -sdk "${SDK_PATH}" \
-  -framework SwiftUI \
-  -framework AppKit \
-  -framework WebKit \
-  -framework Security \
-  "${SOURCE_FILES[@]}" \
-  -o "${MACOS_DIR}/WxTyper"
-
-cp "${PROJECT_DIR}/Native/WxTyper/Resources/Info.plist" "${CONTENTS_DIR}/Info.plist"
-cp "${PROJECT_DIR}/Native/WxTyper/Resources/AppIcon.icns" "${RESOURCES_DIR}/AppIcon.icns"
-cp -R "${PROJECT_DIR}/Native/WxTyper/Resources/Themes" "${RESOURCES_DIR}/Themes"
+ditto "${PROJECT_DIR}/build/macos/Build/Products/Release/WxTyper.app" "${APP_DIR}"
 
 codesign --force --deep --sign - "${APP_DIR}"
+codesign --verify --deep --strict "${APP_DIR}"
+lipo -verify_arch arm64 x86_64 "${APP_DIR}/Contents/MacOS/WxTyper"
 echo "Built ${APP_DIR}"

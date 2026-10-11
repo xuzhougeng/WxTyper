@@ -1,0 +1,14 @@
+WxTyper — macOS 14 或更高版本（Apple Silicon / Intel）
+
+打开 DMG，将 WxTyper.app 拖入 Applications 文件夹，然后从“应用程序”启动。
+
+此版本没有 Apple Developer ID 签名或公证，仅使用本地 ad-hoc 签名。
+首次启动如果被 macOS 阻止，请在“系统设置 → 隐私与安全性”中找到
+WxTyper 的提示，点击“仍要打开”，再确认打开。
+
+仅当确认安装包来自 https://github.com/xuzhougeng/WxTyper/releases
+并核对 SHA256SUMS.txt 后，如果仍提示“已损坏”，可在终端对这个应用执行：
+
+xattr -dr com.apple.quarantine /Applications/WxTyper.app
+
+无需关闭系统的 Gatekeeper 或 SIP。

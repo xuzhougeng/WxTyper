@@ -17,7 +17,17 @@ WxTyper 是面向微信公众号文章排版的原生 Markdown 编辑器。macOS
 
 图片生成使用 OpenAI Image API 的 `POST /v1/images/generations`，默认模型为 `gpt-image-2`。接口形式以 [OpenAI 图片生成官方文档](https://developers.openai.com/api/docs/guides/image-generation) 为准。
 
-## 系统要求
+## 下载与安装
+
+在 [GitHub Releases](https://github.com/xuzhougeng/WxTyper/releases/latest) 下载最新版：
+
+- Windows x64：运行 `WxTyper-版本-Windows-x64-Setup.exe`，或完整解压便携 ZIP 后运行 `WxTyper.exe`。安装程序按当前用户安装；缺少 WebView2 时会联网安装，便携版需自行准备 WebView2。
+- macOS 14+：打开 `WxTyper-版本-macOS-universal.dmg`，将应用拖入 Applications，同时支持 Apple Silicon 和 Intel。
+- 发布页提供 `SHA256SUMS.txt`。Windows 包含 .NET 和 Windows App SDK；使用安装包无需开发环境。
+
+当前安装包未做发行者签名。Windows 首次安装可能出现 SmartScreen 提示；macOS 暂无 Developer ID 签名和公证，仅有 ad-hoc 签名。macOS 首次被拦截可在“系统设置 → 隐私与安全性”选择“仍要打开”；其他处理方式见 [macOS 安装说明](INSTALL-macOS.txt)。
+
+## 开发环境
 
 ### macOS
 
@@ -99,7 +109,23 @@ xcodegen generate
 open build/WxTyper.app
 ```
 
-该脚本使用 Apple Swift 编译器构建 arm64 macOS 应用，适合本地开发验证。正式发布时请在 Xcode 中设置 Developer ID、归档并完成 notarization。
+该脚本使用 Xcode 构建 arm64 + x86_64 通用应用，并添加无需证书的 ad-hoc 签名。版本号来自 `VERSION`。当前发布暂不进行 Developer ID 签名或 notarization。
+
+## CI 与发布
+
+GitHub Actions 在 `main` 推送和 Pull Request 时执行两端测试，并生成 Windows 安装程序、便携 ZIP 和 macOS DMG。Windows 检查包含实际 WebView2 回归与安装、启动、卸载；macOS 执行 XCTest、渲染检查、通用架构与 DMG 校验，以及打包应用启动检查。
+
+本地打包（Windows 需安装 Inno Setup 6；macOS 需 Xcode）：
+
+```powershell
+./Scripts/package-windows.ps1
+```
+
+```bash
+zsh Scripts/package-macos.sh
+```
+
+产物位于 `dist/`。发布时更新 `VERSION`、Xcode 工程的默认版本号和 `RELEASE_NOTES.md`，提交后推送匹配的版本标签（例如 `v0.1` 对应 `0.1.0`）。流水线只在两端测试与打包全部通过后发布 GitHub Release，附带 SHA-256 校验文件。PR 和普通分支构建只上传 Actions artifacts。
 
 ## 配置
 

@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AC7137D8D1894392B2F00001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AC7137D8D1894392B2F00002 /* Assets.xcassets */; };
+		AC7137D8D1894392B2F00003 /* Themes in Resources */ = {isa = PBXBuildFile; fileRef = AC7137D8D1894392B2F00004 /* Themes */; };
 		08BD805598322676BEFE3EFC /* MarkdownRendererTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A78B8D9EAC4FF3588D475280 /* MarkdownRendererTests.swift */; };
 		14F219DEA9FF657C4C1411EC /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D937E7249A5EC22C53E81FC /* AppSettings.swift */; };
 		2B35F231EEA8DF4EA735CF8D /* SampleDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84C9A536A2E4A490E4B9B33D /* SampleDocument.swift */; };
@@ -35,6 +37,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AC7137D8D1894392B2F00002 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AC7137D8D1894392B2F00004 /* Themes */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Themes; sourceTree = "<group>"; };
 		03D6BC147D0D06DA47A96772 /* AppError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppError.swift; sourceTree = "<group>"; };
 		3A27581C4A26897402A0DBA7 /* PreviewWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewWebView.swift; sourceTree = "<group>"; };
 		3E9677263AFCD2768C7C0CB0 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -55,6 +59,15 @@
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		AC7137D8D1894392B2F00005 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				AC7137D8D1894392B2F00002 /* Assets.xcassets */,
+				AC7137D8D1894392B2F00004 /* Themes */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		084A4508898DA77137F7B22C /* Services */ = {
 			isa = PBXGroup;
 			children = (
@@ -99,6 +112,7 @@
 			isa = PBXGroup;
 			children = (
 				E18EA1E412F1E7491A736EA7 /* WxTyperApp.swift */,
+				AC7137D8D1894392B2F00005 /* Resources */,
 				C32951E658F8132E829BD844 /* Models */,
 				084A4508898DA77137F7B22C /* Services */,
 				668CEB5137059020512A151F /* Utilities */,
@@ -168,6 +182,7 @@
 			buildConfigurationList = 3B67E03E69BE820F968D720F /* Build configuration list for PBXNativeTarget "WxTyper" */;
 			buildPhases = (
 				13939CC11C637798B8428023 /* Sources */,
+				AC7137D8D1894392B2F00006 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -218,6 +233,18 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AC7137D8D1894392B2F00006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AC7137D8D1894392B2F00001 /* Assets.xcassets in Resources */,
+				AC7137D8D1894392B2F00003 /* Themes in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		0652C8C1BBCC759542B3917F /* Sources */ = {
@@ -370,7 +397,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 0.1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -448,7 +475,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 0.1.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

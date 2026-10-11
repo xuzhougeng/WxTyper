@@ -1,0 +1,168 @@
+name: CI and Release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      value: ${{ steps.version.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: version
+        name: Validate release version
+        shell: bash
+        run: |
+          version=$(tr -d '[:space:]' < VERSION)
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then
+            [[ "$GITHUB_REF_NAME" == "v$version" || "$GITHUB_REF_NAME" == "v${version%.0}" ]]
+          fi
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+
+  windows:
+    name: Windows x64
+    needs: version
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Core regression checks
+        run: dotnet run --project Native/Windows/WxTyper.Tests/WxTyper.Tests.csproj -c Release
+      - name: Native WebView2 regression checks
+        shell: pwsh
+        run: ./Scripts/test-windows-preview.ps1
+      - name: Build self-contained application
+        shell: pwsh
+        run: ./Scripts/build-windows.ps1
+      - name: Ensure Inno Setup is installed
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}/Inno Setup 6/ISCC.exe")) {
+            choco install innosetup --no-progress -y
+            if ($LASTEXITCODE -ne 0) { throw 'Inno Setup installation failed.' }
+          }
+      - name: Package installer and portable ZIP
+        shell: pwsh
+        run: ./Scripts/package-windows.ps1 -NoBuild
+      - name: Verify installation, launch and removal
+        shell: pwsh
+        run: ./Scripts/test-windows-installer.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages-windows
+          path: dist/*
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: diagnostics-windows
+          path: test-results/
+
+  macos:
+    name: macOS universal
+    needs: version
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Xcode unit tests
+        run: |
+          xcodebuild -quiet -project WxTyper.xcodeproj -scheme WxTyper \
+            -destination 'platform=macOS' -derivedDataPath build/macos-tests \
+            -resultBundlePath test-results/macOS.xcresult \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM='' test
+      - name: Renderer smoke checks
+        run: |
+          xcrun swiftc -parse-as-library Native/WxTyper/Services/MarkdownRenderer.swift \
+            Scripts/RendererSmokeTests.swift -o build/renderer-tests
+          build/renderer-tests
+      - name: Build universal app and DMG (no Developer ID or notarization)
+        run: zsh Scripts/package-macos.sh
+      - name: Verify packaged app and launch
+        env:
+          APP_VERSION: ${{ needs.version.outputs.value }}
+        run: |
+          mount="$RUNNER_TEMP/WxTyper-dmg"
+          mkdir -p "$mount"
+          hdiutil attach "dist/WxTyper-${APP_VERSION}-macOS-universal.dmg" -readonly -nobrowse -mountpoint "$mount"
+          trap 'hdiutil detach "$mount"' EXIT
+          app="$mount/WxTyper.app"
+          test -L "$mount/Applications"
+          test -s "$app/Contents/Resources/AppIcon.icns"
+          for theme in default lapis sakura tech; do
+            test -s "$app/Contents/Resources/Themes/$theme.css"
+          done
+          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$app/Contents/Info.plist")" = "$APP_VERSION"
+          codesign --verify --deep --strict "$app"
+          lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/WxTyper"
+          ditto "$app" "$RUNNER_TEMP/WxTyper.app"
+          "$RUNNER_TEMP/WxTyper.app/Contents/MacOS/WxTyper" >build/macOS-launch.log 2>&1 &
+          pid=$!
+          sleep 5
+          kill -0 "$pid"
+          kill "$pid"
+          wait "$pid" || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages-macos
+          path: dist/*
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: diagnostics-macos
+          path: |
+            test-results/
+            build/macOS-launch.log
+
+  release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [version, windows, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: packages-*
+          path: dist
+          merge-multiple: true
+      - name: Verify assets, generate checksums and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          APP_VERSION: ${{ needs.version.outputs.value }}
+        shell: bash
+        run: |
+          cd dist
+          test -s "WxTyper-${APP_VERSION}-Windows-x64-Setup.exe"
+          test -s "WxTyper-${APP_VERSION}-Windows-x64-portable.zip"
+          test -s "WxTyper-${APP_VERSION}-macOS-universal.dmg"
+          sha256sum WxTyper-* > SHA256SUMS.txt
+          sha256sum --check SHA256SUMS.txt
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            test "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)" = true
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --draft \
+              --title "WxTyper $RELEASE_TAG" --notes-file ../RELEASE_NOTES.md
+          fi
+          gh release upload "$RELEASE_TAG" ./* --clobber
+          gh release edit "$RELEASE_TAG" --draft=false --latest
