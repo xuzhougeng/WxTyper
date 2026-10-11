@@ -1,7 +1,9 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 
 namespace WxTyper.Core;
 
@@ -66,16 +68,58 @@ public sealed class WeChatService(HttpClient client)
         return ImageService.Replace(markdown, replacements);
     }
     private static bool IsWeChatUrl(string url) => Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https" && (uri.Host == "mmbiz.qpic.cn" || uri.Host.EndsWith(".qpic.cn", StringComparison.OrdinalIgnoreCase));
-    private static async Task<JsonDocument> ReadResponseAsync(HttpResponseMessage response, CancellationToken token)
+    private async Task<JsonDocument> ReadResponseAsync(HttpResponseMessage response, CancellationToken token)
     {
-        if (!response.IsSuccessStatusCode) throw new InvalidOperationException($"微信接口 HTTP {(int)response.StatusCode}。");
+        if (!response.IsSuccessStatusCode) throw await ApiErrorAsync($"微信接口 HTTP {(int)response.StatusCode}。", null, token);
         var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(token));
         if (json.RootElement.TryGetProperty("errcode", out var code) && code.GetInt32() != 0)
         {
-            var value = code.GetInt32(); json.Dispose();
-            throw new InvalidOperationException($"微信接口错误 {value}，请检查凭证、IP 白名单及素材权限。");
+            var value = code.GetInt32();
+            var serverMessage = json.RootElement.TryGetProperty("errmsg", out var message) && message.ValueKind == JsonValueKind.String ? message.GetString() : null;
+            json.Dispose();
+            var hint = value switch
+            {
+                40164 => "请求 IP 不在白名单中，请在微信公众号后台添加微信识别的出口 IP。",
+                41005 => "缺少上传的文件数据（media），请检查待上传图片和上传请求。",
+                _ => "请检查凭证、IP 白名单及素材权限。"
+            };
+            throw await ApiErrorAsync($"微信接口错误 {value}：{hint}", serverMessage, token);
         }
         return json;
+    }
+
+    private async Task<InvalidOperationException> ApiErrorAsync(string message, string? serverMessage, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        // Only extract a validated IP; errmsg may also contain credentials or tokens.
+        var match = Regex.Match(serverMessage ?? "", @"\binvalid ip\s+(?<ip>[0-9a-fA-F:.]+)", RegexOptions.IgnoreCase);
+        if (match.Success && ParseIP(match.Groups["ip"].Value) is { } observedIP)
+            return new(message + "\n微信识别的出口公网 IP：" + observedIP);
+
+        // Use the same HTTP client/proxy settings, but do not assume a proxy routes
+        // the lookup service and WeChat through the same exit. Never cache this IP.
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
+        timeout.CancelAfter(TimeSpan.FromSeconds(3));
+        try
+        {
+            using var response = await client.GetAsync("https://api.ipify.org?format=json", timeout.Token);
+            response.EnsureSuccessStatusCode();
+            using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(timeout.Token));
+            if (json.RootElement.TryGetProperty("ip", out var value) && value.ValueKind == JsonValueKind.String && ParseIP(value.GetString()) is { } detectedIP)
+                return new(message + "\n当前出口公网 IP（检测值）：" + detectedIP + "。若使用代理分流，以微信识别的 IP 为准。");
+        }
+        catch (Exception error) when (error is HttpRequestException or OperationCanceledException or JsonException or InvalidOperationException)
+        {
+            // A diagnostic lookup must not replace the original WeChat failure.
+        }
+        token.ThrowIfCancellationRequested();
+        return new(message + "\n出口公网 IP 暂时无法获取，请稍后重试。");
+    }
+
+    private static string? ParseIP(string? value)
+    {
+        if (value is null || !IPAddress.TryParse(value.Trim(), out var address)) return null;
+        return (address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address).ToString();
     }
     private sealed record Entry(
         [property: JsonPropertyName("original_url")] string OriginalURL,

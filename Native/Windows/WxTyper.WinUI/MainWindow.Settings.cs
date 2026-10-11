@@ -57,6 +57,7 @@ public sealed partial class MainWindow
         var wechat = new StackPanel { Spacing = 14 }; wechat.Children.Add(appId); wechat.Children.Add(appSecret);
         wechat.Children.Add(Hint("填写微信公众号开发者配置。上传永久素材会复用有效 access_token；请确认公众号接口权限及 IP 白名单。"));
         var wechatTest = new Button { Content = "测试 access_token" }; var wechatStatus = Hint(""); wechat.Children.Add(wechatTest); wechat.Children.Add(wechatStatus);
+        wechatStatus.IsTextSelectionEnabled = true;
         var advanced = new StackPanel { Spacing = 14 }; advanced.Children.Add(Hint("会话日志只保留本次运行最近 200 条操作，不记录密钥、令牌或服务端响应正文。"));
         advanced.Children.Add(new TextBlock { Text = logs.Count == 0 ? "暂无日志" : string.Join("\n\n", logs), IsTextSelectionEnabled = true, TextWrapping = TextWrapping.Wrap, FontFamily = new FontFamily("Consolas"), FontSize = 12 });
         var tabs = new Pivot { Width = 580, Height = 490 };

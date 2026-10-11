@@ -55,6 +55,8 @@ $env:HTTPS_PROXY="http://127.0.0.1:7897"
 
 Windows 设置存放在 `%LOCALAPPDATA%\WxTyper`；`settings.json` 不包含密钥，`secrets.bin` 使用 DPAPI 当前用户加密。自定义 CSS 仅用于当前会话。开发验证可以通过 `WXTYPER_DATA_DIR` 指定独立设置和 WebView2 缓存目录。
 
+Windows 版在微信接口返回错误时会显示出口公网 IP：优先采用微信响应中识别的地址，否则通过 `api.ipify.org` 检测，并标明代理分流可能使微信出口不同。检测不携带微信凭证，最多等待 3 秒，失败时保留原始错误；成功请求不进行 IP 查询。设置中的测试结果可选中复制。错误 `41005` 会明确提示缺少上传文件数据，不再将其笼统归为 IP 白名单问题。
+
 本地图片以文章文件夹为根目录预览，图片保存目录必须位于该文件夹内。上传素材会在文章目录写入 `wechat_media_log.jsonl`，按公众号 APPID、原图片地址和内容 SHA-256 复用上传结果；兼容读取 SwiftUI 日志字段，但缺少账号和内容校验的旧条目会重新上传。日志不包含 access_token。
 
 复制会同时写入带内联样式的 HTML 和 Markdown 纯文本。Mermaid 代码块需先从工具菜单导出 PNG；本地图片要在公众号中显示，还需上传为可访问的图片 URL。预览是 HTML 内容，编辑器、工具栏、设置和文件对话框均为原生 Windows 控件。
