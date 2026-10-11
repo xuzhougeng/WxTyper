@@ -19,5 +19,5 @@ ditto "${PROJECT_DIR}/build/macos/Build/Products/Release/WxTyper.app" "${APP_DIR
 
 codesign --force --deep --sign - "${APP_DIR}"
 codesign --verify --deep --strict "${APP_DIR}"
-lipo -verify_arch arm64 x86_64 "${APP_DIR}/Contents/MacOS/WxTyper"
+lipo "${APP_DIR}/Contents/MacOS/WxTyper" -verify_arch arm64 x86_64
 echo "Built ${APP_DIR}"

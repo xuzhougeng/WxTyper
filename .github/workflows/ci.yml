@@ -114,7 +114,7 @@ jobs:
           done
           test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$app/Contents/Info.plist")" = "$APP_VERSION"
           codesign --verify --deep --strict "$app"
-          lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/WxTyper"
+          lipo "$app/Contents/MacOS/WxTyper" -verify_arch arm64 x86_64
           ditto "$app" "$RUNNER_TEMP/WxTyper.app"
           "$RUNNER_TEMP/WxTyper.app/Contents/MacOS/WxTyper" >build/macOS-launch.log 2>&1 &
           pid=$!
