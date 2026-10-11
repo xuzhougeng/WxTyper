@@ -50,13 +50,11 @@ public sealed class WeChatService(HttpClient client)
         foreach (var reference in references)
         {
             var (data, filename) = await ImageService.ReadAsync(client, reference, documentPath, settings.SitePrefix, token);
+            if (data.Length == 0) throw new InvalidOperationException($"图片文件为空，无法上传：{filename}。");
             var digest = Convert.ToHexString(SHA256.HashData(data));
             if (cached.TryGetValue(reference, out var entry) && entry.Sha256 == digest && IsWeChatUrl(entry.WeChatURL))
             { replacements[reference] = entry.WeChatURL; continue; }
-            using var content = new MultipartFormDataContent();
-            var file = new ByteArrayContent(data);
-            file.Headers.ContentType = new MediaTypeHeaderValue(ImageService.Extension(filename) switch { ".jpg" or ".jpeg" => "image/jpeg", ".gif" => "image/gif", ".webp" => "image/webp", _ => "image/png" });
-            content.Add(file, "media", filename);
+            using var content = UploadContent(data, filename);
             using var response = await client.PostAsync("https://api.weixin.qq.com/cgi-bin/material/add_material?type=image&access_token=" + Uri.EscapeDataString(accessToken), content, token);
             using var json = await ReadResponseAsync(response, token);
             entry = new Entry(reference, json.RootElement.GetProperty("url").GetString()!, json.RootElement.GetProperty("media_id").GetString()!, settings.WeChatAppID.Trim(), digest);
@@ -66,6 +64,28 @@ public sealed class WeChatService(HttpClient client)
             replacements[reference] = entry.WeChatURL;
         }
         return ImageService.Replace(markdown, replacements);
+    }
+
+    private static MultipartFormDataContent UploadContent(byte[] data, string filename)
+    {
+        // Match the Swift/curl form shape. WeChat's media parser can reject .NET's
+        // default quoted boundary and unquoted name=media with error 41005.
+        var boundary = "WxTyper-" + Guid.NewGuid().ToString("N");
+        var content = new MultipartFormDataContent(boundary);
+        content.Headers.ContentType!.Parameters.Single(parameter => parameter.Name == "boundary").Value = boundary;
+        var extension = ImageService.Extension(filename);
+        // Use a plain ASCII transport filename so .NET does not emit MIME encoded
+        // words or filename*. This does not rename the file or change its bytes.
+        var uploadName = Regex.IsMatch(filename, @"\A[A-Za-z0-9._-]+\z") ? filename : "image-" + Guid.NewGuid().ToString("N") + extension;
+        var file = new ByteArrayContent(data);
+        file.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
+        {
+            Name = "\"media\"",
+            FileName = "\"" + uploadName + "\""
+        };
+        file.Headers.ContentType = new MediaTypeHeaderValue(extension switch { ".jpg" or ".jpeg" => "image/jpeg", ".gif" => "image/gif", ".webp" => "image/webp", _ => "image/png" });
+        content.Add(file);
+        return content;
     }
     private static bool IsWeChatUrl(string url) => Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https" && (uri.Host == "mmbiz.qpic.cn" || uri.Host.EndsWith(".qpic.cn", StringComparison.OrdinalIgnoreCase));
     private async Task<JsonDocument> ReadResponseAsync(HttpResponseMessage response, CancellationToken token)

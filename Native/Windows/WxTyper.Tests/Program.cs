@@ -78,6 +78,7 @@ try
     Check(tokenCalls == 2, "Changed WeChat credentials invalidate token cache");
     Check(!File.ReadAllText(Path.Combine(temp, "wechat_media_log.jsonl")).Contains("secret-token"), "Upload log omits access tokens");
     await WeChatDiagnosticsTests.RunAsync(Check, file);
+    await WeChatUploadTests.RunAsync(Check, temp, args.Length == 2 && args[0] == "--upload-fixture" ? args[1] : null);
     var downloadCalls = 0;
     using var imageClient = new HttpClient(new MockHandler(_ => { downloadCalls++; return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1, 2, 3]) }); }));
     var localized = await ImageService.LocalizeAsync(imageClient, "![x](https://images.example.com/a.png \"标题\")\n![y](image.png)", file, settings, default);

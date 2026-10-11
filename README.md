@@ -69,6 +69,8 @@ dotnet run --project Native/Windows/WxTyper.Tests/WxTyper.Tests.csproj
 
 检查涵盖 Markdown/主题、脚注、图片引用与替换、UTF-8 保存、DPAPI、OpenAI 请求及微信上传缓存。网络服务检查使用模拟 HTTP 响应，真实账号权限、额度、IP 白名单与公众号粘贴效果仍需用自己的账号验收。
 
+微信上传检查还会读取完整 multipart 请求正文，验证 `media` 字段、boundary、文件名编码及图片字节。可运行 `dotnet run --project Native/Windows/WxTyper.Tests/WxTyper.Tests.csproj -- --upload-fixture 'C:\path\image.png'` 检查指定图片：仅在临时目录内构造和验证请求，不向微信发送图片。Windows 上传使用与 Swift 版一致的表单格式，中文文件名仅在传输时转换为 ASCII 名称，本地文件保持原名；空图片会在发送前报错。
+
 预览的浏览器回归脚本为 `Scripts/preview-browser-tests.cjs`，需要 Node.js、模块路径中可用的 Playwright，以及本机 Microsoft Edge。先创建 `test-results` 目录，再执行：
 
 ```powershell
