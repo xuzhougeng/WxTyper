@@ -81,6 +81,10 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: Select Xcode 16.2
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          xcodebuild -version
       - name: Xcode unit tests
         run: |
           xcodebuild -quiet -project WxTyper.xcodeproj -scheme WxTyper \
