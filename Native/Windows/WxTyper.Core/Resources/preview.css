@@ -1,8 +1,31 @@
 :root { color-scheme: light; }
 html { background: #f3f4f6; }
+/* Keep the preview scrollbar quiet, with a wider hit area than its visible thumb. */
+@media (forced-colors: none) {
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    min-height: 36px;
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background: rgba(69, 87, 80, .28);
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    border-width: 2px;
+    background-color: rgba(69, 87, 80, .48);
+  }
+  ::-webkit-scrollbar-thumb:active { background-color: rgba(45, 90, 76, .68); }
+  ::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+  ::-webkit-scrollbar-corner { background: transparent; }
+}
 body { margin: 0; padding: 28px 24px; }
 .wechat-content { box-sizing: border-box; max-width: 680px; min-height: calc(100vh - 56px); margin: 0 auto; padding: 28px 34px; background: white; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; font-size: 16px; line-height: 1.7; color: #333; overflow-wrap: anywhere; }
 img { max-width: 100%; height: auto; }
+img.wx-image-loading { display: block; min-height: 120px; min-width: 160px; background: linear-gradient(110deg, #eef3f1 30%, #fafcfb 45%, #eef3f1 60%); background-size: 200% 100%; animation: image-loading 1.4s ease-in-out infinite; border-radius: 8px; }
+img.wx-image-error { display: block; min-height: 80px; background: #f6f2ed; border-radius: 8px; }
+@keyframes image-loading { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { img.wx-image-loading { animation: none; } }
 pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .mermaid { text-align: center; margin: 20px 0; }
 .mermaid svg { max-width: 100%; height: auto; }

@@ -30,6 +30,12 @@ try
     var session = new DocumentSession(); session.New(); Check(session.IsDirty, "New article asks to save before discard");
     session.Markdown = "# 中文\n\nTest"; session.Save(file); session.Open(file);
     Check(!session.IsDirty && session.Markdown == "# 中文\n\nTest", "UTF-8 save/open and dirty state round trip");
+    session.Markdown = "# 中文\r\rTest";
+    Check(!session.IsDirty && session.Markdown.Count(c => c == '\n') == 2, "WinUI CR-only TextBox updates preserve saved state and line counts");
+    File.WriteAllText(file, "# CRLF\r\n\r\nbody\rnext");
+    await session.OpenAsync(file);
+    var metrics = MarkdownRenderer.RenderContent(session.Markdown, options);
+    Check(!session.IsDirty && metrics.LineCount == 4 && !session.Markdown.Contains('\r'), "Async open normalizes mixed Windows and legacy line endings");
     session.Markdown += " changed"; Check(session.IsDirty, "Editing changes document dirty state");
     try { ImageService.AssetsPath(file, "../outside"); throw new Exception("Traversal accepted"); }
     catch (InvalidOperationException) { Check(true, "Assets path cannot escape article directory"); }
@@ -78,6 +84,8 @@ try
 }
 finally { Directory.Delete(temp, true); }
 Console.WriteLine($"All {checks} checks passed.");
+if (args.Length == 2 && args[0] == "--preview-fixture")
+    File.WriteAllText(args[1], MarkdownRenderer.RenderShell());
 
 sealed class MockHandler(Func<HttpRequestMessage, Task<HttpResponseMessage>> handler) : HttpMessageHandler
 {

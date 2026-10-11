@@ -1,4 +1,3 @@
-using System.Globalization;
 using Markdig;
 using Markdig.Syntax;
 using Microsoft.UI;
@@ -25,24 +24,37 @@ public sealed partial class MainWindow : Window
     private readonly OpenAIService openAI;
     private readonly WeChatService weChat;
     private readonly Grid root = new();
+    private readonly Grid titleDragRegion = new() { Background = new SolidColorBrush(Colors.Transparent) };
     private readonly Grid workspace = new();
     private readonly Grid editorPane = new();
     private readonly Grid previewPane = new();
+    private readonly Border floatingToolbar = new() { Visibility = Visibility.Collapsed };
+    private readonly ToggleMenuFlyoutItem toolbarToggle = new() { Text = "显示悬浮工具栏", IsChecked = false };
     private readonly TextBox editor = new();
     private readonly WebView2 webView = new();
     private readonly PreviewController preview;
-    private readonly TextBlock title = new(), status = new(), themeLabel = new(), dirtyLabel = new();
+    private readonly TextBlock title = new(), status = new();
+    private readonly ProgressRing activityRing = new() { Width = 20, Height = 20, IsActive = false, Visibility = Visibility.Collapsed };
+    private readonly StackPanel previewProgressRow = new() { Spacing = 8, Padding = new Thickness(14, 10, 14, 10) };
+    private readonly ProgressRing previewRing = new() { Width = 22, Height = 22, IsActive = true };
+    private readonly ProgressBar previewBar = new() { IsIndeterminate = true, Height = 3 };
+    private readonly TextBlock previewMessage = new() { Text = "正在启动预览…", FontSize = 13, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
     private readonly InfoBar notification = new() { IsClosable = true };
     private readonly Border summaryCard = new();
     private readonly TextBlock summaryText = new() { TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true, MaxHeight = 120 };
     private readonly List<Control> busyControls = [];
     private readonly List<string> logs = [];
     private readonly DispatcherTimer renderTimer = new() { Interval = TimeSpan.FromMilliseconds(280) };
+    private readonly DispatcherTimer toastTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private readonly Button cancelButton = new() { Content = "取消", Visibility = Visibility.Collapsed };
     private readonly Thumb splitter = new() { Width = 5, HorizontalAlignment = HorizontalAlignment.Stretch };
     private CancellationTokenSource? operation;
-    private bool dialogOpen, closing, allowClose, renderPending;
+    private bool dialogOpen, closing, allowClose, renderPending, resetPreviewScroll, syncingEditor, openingDocument;
     private Task renderTask = Task.CompletedTask;
+    private Task previewInitialization = Task.CompletedTask;
+    private PreviewContent? measuredContent;
+    private string? measuredMarkdown;
+    private RenderOptions? measuredOptions;
     private string? customCss, customTheme;
     private string viewMode = "split";
     private double splitRatio = 0.47;
@@ -55,12 +67,8 @@ public sealed partial class MainWindow : Window
         try { settings = store.Load(); }
         catch { loadError = "设置读取失败，已使用默认值。原设置文件保留，请检查本地用户数据。"; }
         var initialPath = Environment.GetCommandLineArgs().Skip(1).FirstOrDefault();
-        if (initialPath is not null)
-        {
-            try { document.Open(initialPath); }
-            catch { loadError = "无法打开指定文章，已显示示例文档。"; }
-        }
         openAI = new(http); weChat = new(http); preview = new(webView);
+        preview.ProgressChanged += UpdatePreviewProgress;
         Title = "WxTyper";
         SystemBackdrop = new MicaBackdrop();
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1280, 860));
@@ -68,29 +76,35 @@ public sealed partial class MainWindow : Window
         BuildLayout();
         Content = root;
         ExtendsContentIntoTitleBar = true;
-        SetTitleBar((UIElement)root.Children[0]);
+        AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
+        SetTitleBar(titleDragRegion);
         editor.Text = document.Markdown;
-        editor.TextChanged += (_, _) => { document.Markdown = editor.Text.Replace("\r\n", "\n"); RefreshStatus(); renderTimer.Stop(); renderTimer.Start(); };
+        editor.TextChanged += (_, _) =>
+        {
+            if (syncingEditor) return;
+            var normalized = DocumentSession.NormalizeLineEndings(editor.Text);
+            if (normalized == document.Markdown) return;
+            document.Markdown = normalized; RefreshStatus(); renderTimer.Stop(); renderTimer.Start();
+        };
         renderTimer.Tick += async (_, _) => { renderTimer.Stop(); await Safe(RenderAsync); };
+        toastTimer.Tick += (_, _) => { toastTimer.Stop(); notification.IsOpen = false; };
         AppWindow.Closing += async (_, args) =>
         {
             if (allowClose) return;
             args.Cancel = true;
-            if (closing || dialogOpen) return;
-            closing = true;
-            try
-            {
-                if (operation is not null) { Notify("请先取消或等待当前操作完成。", true); return; }
-                if (await ConfirmDiscardAsync()) { allowClose = true; webView.Close(); http.Dispose(); Close(); }
-            }
-            catch (Exception error) { Notify(error is IOException ? error.Message : "保存失败，窗口保持打开。", true); }
-            finally { closing = false; }
+            await Safe(RequestCloseAsync);
         };
         root.Loaded += async (_, _) =>
         {
             RefreshStatus();
-            try { await preview.InitializeAsync(dataDirectory); await RenderAsync(); }
-            catch (Exception error) { Notify($"预览初始化失败（{error.GetType().Name}，0x{error.HResult:X8}）：{error.Message}", true); }
+            previewInitialization = preview.InitializeAsync(dataDirectory);
+            if (initialPath is not null) await Safe(() => LoadDocumentAsync(initialPath));
+            try { await previewInitialization; await RenderAsync(); }
+            catch (Exception error)
+            {
+                UpdatePreviewProgress(new("预览启动失败，编辑和保存仍可使用。", false, HasError: true));
+                Notify($"预览初始化失败（{error.GetType().Name}，0x{error.HResult:X8}）：{error.Message}", true);
+            }
             if (loadError is not null) Notify(loadError, true);
             editor.Focus(FocusState.Programmatic);
         };
@@ -100,27 +114,19 @@ public sealed partial class MainWindow : Window
     private void BuildLayout()
     {
         root.Background = (Brush)Application.Current.Resources["ApplicationPageBackgroundThemeBrush"];
-        root.RowDefinitions.Add(new() { Height = new GridLength(42) });
+        root.RowDefinitions.Add(new() { Height = new GridLength(48) });
         root.RowDefinitions.Add(new() { Height = GridLength.Auto });
         root.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) });
         root.RowDefinitions.Add(new() { Height = GridLength.Auto });
-        var titleBar = new Grid { Padding = new Thickness(16, 0, 145, 0) };
-        var titleStack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, VerticalAlignment = VerticalAlignment.Center };
-        titleStack.Children.Add(new FontIcon { Glyph = "\uE8A5", FontSize = 17, Foreground = Brush(45, 90, 76) });
-        titleStack.Children.Add(new TextBlock { Text = "WxTyper", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
-        title.Opacity = 0.65; title.FontSize = 12; title.VerticalAlignment = VerticalAlignment.Center;
-        titleStack.Children.Add(title); titleBar.Children.Add(titleStack); root.Children.Add(titleBar);
+        root.Children.Add(BuildTitleBar());
         Grid.SetRow(notification, 1); root.Children.Add(notification);
 
         workspace.ColumnDefinitions.Add(new() { Width = new GridLength(splitRatio, GridUnitType.Star) });
         workspace.ColumnDefinitions.Add(new() { Width = new GridLength(5) });
         workspace.ColumnDefinitions.Add(new() { Width = new GridLength(1 - splitRatio, GridUnitType.Star) });
-        workspace.ColumnDefinitions.Add(new() { Width = new GridLength(84) });
         Grid.SetRow(workspace, 2); root.Children.Add(workspace);
-        editorPane.RowDefinitions.Add(new() { Height = new GridLength(38) });
         editorPane.RowDefinitions.Add(new() { Height = GridLength.Auto });
         editorPane.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) });
-        editorPane.Children.Add(Header("Markdown", dirtyLabel));
         editor.AcceptsReturn = true; editor.TextWrapping = TextWrapping.Wrap; editor.IsSpellCheckEnabled = false; editor.IsTextPredictionEnabled = false;
         editor.FontFamily = new FontFamily("Cascadia Mono, Consolas"); editor.FontSize = 14;
         editor.BorderThickness = new Thickness(0); editor.Padding = new Thickness(20, 18, 20, 24);
@@ -128,24 +134,32 @@ public sealed partial class MainWindow : Window
         editor.VerticalAlignment = VerticalAlignment.Stretch;
         ScrollViewer.SetVerticalScrollBarVisibility(editor, ScrollBarVisibility.Auto);
         AutomationProperties.SetName(editor, "Markdown 编辑器");
-        Grid.SetRow(editor, 2); editorPane.Children.Add(editor);
-        BuildSummary(); Grid.SetRow(summaryCard, 1); editorPane.Children.Add(summaryCard);
+        Grid.SetRow(editor, 1); editorPane.Children.Add(editor);
+        BuildSummary(); editorPane.Children.Add(summaryCard);
         workspace.Children.Add(editorPane);
         splitter.Background = (Brush)Application.Current.Resources["DividerStrokeColorDefaultBrush"];
-        splitter.DragDelta += (_, e) => { splitRatio = Math.Clamp(splitRatio + e.HorizontalChange / Math.Max(1, workspace.ActualWidth - 89), .25, .75); ApplyViewMode(); };
+        splitter.DragDelta += (_, e) => { splitRatio = Math.Clamp(splitRatio + e.HorizontalChange / Math.Max(1, workspace.ActualWidth - splitter.ActualWidth), .25, .75); ApplyViewMode(); };
         AutomationProperties.SetName(splitter, "调整编辑与预览宽度"); Grid.SetColumn(splitter, 1); workspace.Children.Add(splitter);
-        previewPane.RowDefinitions.Add(new() { Height = new GridLength(38) });
+        previewPane.RowDefinitions.Add(new() { Height = GridLength.Auto });
         previewPane.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) });
-        previewPane.Children.Add(Header("微信预览", themeLabel));
+        var progressLine = new Grid { ColumnSpacing = 10 };
+        progressLine.ColumnDefinitions.Add(new() { Width = GridLength.Auto }); progressLine.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
+        progressLine.Children.Add(previewRing); Grid.SetColumn(previewMessage, 1); progressLine.Children.Add(previewMessage);
+        AutomationProperties.SetLiveSetting(previewMessage, Microsoft.UI.Xaml.Automation.Peers.AutomationLiveSetting.Polite);
+        previewProgressRow.Children.Add(progressLine); previewProgressRow.Children.Add(previewBar);
+        previewPane.Children.Add(previewProgressRow);
+        AutomationProperties.SetName(webView, "微信预览");
         Grid.SetRow(webView, 1); previewPane.Children.Add(webView);
         Grid.SetColumn(previewPane, 2); workspace.Children.Add(previewPane);
-        var rail = BuildRail(); Grid.SetColumn(rail, 3); workspace.Children.Add(rail);
+        // Overlay the existing panes; showing the toolbar never changes their widths.
+        var rail = BuildRail(); Grid.SetColumnSpan(rail, 3); workspace.Children.Add(rail);
+        workspace.SizeChanged += (_, _) => rail.MaxHeight = Math.Max(0, workspace.ActualHeight - 24);
 
         var footer = new Grid { Padding = new Thickness(14, 5, 14, 5), MinHeight = 32, ColumnSpacing = 12 };
-        footer.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) }); footer.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
+        footer.ColumnDefinitions.Add(new() { Width = GridLength.Auto }); footer.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) }); footer.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
         status.FontSize = 12; status.Opacity = 0.7; status.VerticalAlignment = VerticalAlignment.Center; status.TextTrimming = TextTrimming.CharacterEllipsis;
-        footer.Children.Add(status); cancelButton.Click += (_, _) => operation?.Cancel(); cancelButton.FontSize = 12; cancelButton.Padding = new Thickness(10, 2, 10, 2);
-        Grid.SetColumn(cancelButton, 1); footer.Children.Add(cancelButton); Grid.SetRow(footer, 3); root.Children.Add(footer);
+        footer.Children.Add(activityRing); Grid.SetColumn(status, 1); footer.Children.Add(status); cancelButton.Click += (_, _) => operation?.Cancel(); cancelButton.FontSize = 12; cancelButton.Padding = new Thickness(10, 2, 10, 2);
+        Grid.SetColumn(cancelButton, 2); footer.Children.Add(cancelButton); Grid.SetRow(footer, 3); root.Children.Add(footer);
         Shortcut(VirtualKey.N, VirtualKeyModifiers.Control, NewAsync);
         Shortcut(VirtualKey.O, VirtualKeyModifiers.Control, OpenAsync);
         Shortcut(VirtualKey.S, VirtualKeyModifiers.Control, async () => { await SaveAsync(); });
@@ -154,17 +168,12 @@ public sealed partial class MainWindow : Window
         Shortcut(VirtualKey.R, VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift, SummaryAsync);
         Shortcut((VirtualKey)0xBC, VirtualKeyModifiers.Control, SettingsAsync);
     }
-    private static Grid Header(string name, TextBlock trailing)
-    {
-        var grid = new Grid { Padding = new Thickness(14, 0, 14, 0), BorderThickness = new Thickness(0, 0, 0, 1), BorderBrush = Brush(225, 228, 227) };
-        grid.ColumnDefinitions.Add(new() { Width = GridLength.Auto }); grid.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
-        grid.Children.Add(new TextBlock { Text = name, FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center });
-        trailing.FontSize = 12; trailing.Opacity = 0.6; trailing.HorizontalAlignment = HorizontalAlignment.Right; trailing.VerticalAlignment = VerticalAlignment.Center; trailing.TextTrimming = TextTrimming.CharacterEllipsis;
-        Grid.SetColumn(trailing, 1); grid.Children.Add(trailing); return grid;
-    }
     private Border BuildRail()
     {
         var stack = new StackPanel { Spacing = 5 };
+        var hide = RailButton("\uE711", "隐藏悬浮工具栏", () => { SetToolbarVisible(false); return Task.CompletedTask; });
+        hide.Height = 30; stack.Children.Add(hide);
+        stack.Children.Add(new MenuFlyoutSeparator());
         stack.Children.Add(RailButton("\uE8E5", "打开 Markdown（Ctrl+O）", OpenAsync));
         var save = RailButton("\uE74E", "保存（Ctrl+S）", async () => { await SaveAsync(); });
         var fileMenu = new MenuFlyout();
@@ -192,7 +201,26 @@ public sealed partial class MainWindow : Window
         copy.ClearValue(Control.BackgroundProperty); copy.ClearValue(Control.BorderThicknessProperty);
         copy.Style = (Style)Application.Current.Resources["AccentButtonStyle"]; stack.Children.Add(copy);
         stack.Children.Add(RailButton("\uE713", "设置（Ctrl+,）", SettingsAsync));
-        return new Border { Child = stack, Padding = new Thickness(7), Margin = new Thickness(10, 0, 10, 0), CornerRadius = new CornerRadius(12), BorderThickness = new Thickness(1), BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"], Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"], VerticalAlignment = VerticalAlignment.Center };
+        floatingToolbar.Child = new ScrollViewer
+        {
+            Content = stack,
+            HorizontalScrollMode = ScrollMode.Disabled,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+        };
+        floatingToolbar.Padding = new Thickness(7); floatingToolbar.Margin = new Thickness(12);
+        floatingToolbar.CornerRadius = new CornerRadius(12); floatingToolbar.BorderThickness = new Thickness(1);
+        floatingToolbar.BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"];
+        floatingToolbar.Background = (Brush)Application.Current.Resources["SolidBackgroundFillColorBaseBrush"];
+        floatingToolbar.HorizontalAlignment = HorizontalAlignment.Right; floatingToolbar.VerticalAlignment = VerticalAlignment.Center;
+        floatingToolbar.Shadow = new ThemeShadow(); floatingToolbar.Translation = new System.Numerics.Vector3(0, 0, 32);
+        AutomationProperties.SetName(floatingToolbar, "悬浮工具栏");
+        return floatingToolbar;
+    }
+    private void SetToolbarVisible(bool visible)
+    {
+        toolbarToggle.IsChecked = visible;
+        floatingToolbar.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
     }
     private Button RailButton(string glyph, string label, Func<Task> action)
     {
@@ -210,7 +238,7 @@ public sealed partial class MainWindow : Window
     private void Shortcut(VirtualKey key, VirtualKeyModifiers modifiers, Func<Task> action)
     {
         var shortcut = new KeyboardAccelerator { Key = key, Modifiers = modifiers };
-        shortcut.Invoked += async (_, args) => { args.Handled = true; if (!dialogOpen && operation is null) await Safe(action); };
+        shortcut.Invoked += async (_, args) => { args.Handled = true; if (!dialogOpen && !openingDocument && operation is null) await Safe(action); };
         root.KeyboardAccelerators.Add(shortcut);
     }
     private void BuildSummary()
@@ -235,8 +263,9 @@ public sealed partial class MainWindow : Window
     private void RefreshStatus()
     {
         Title = $"{document.Name}{(document.IsDirty ? " — 已修改" : "")} — WxTyper"; title.Text = document.Name;
-        dirtyLabel.Text = document.IsDirty ? "已修改" : ""; themeLabel.Text = customTheme ?? settings.ThemeTitle;
-        status.Text = $"{(document.IsDirty ? "未保存" : document.FilePath is null ? "示例文档" : "已保存")}    {new StringInfo(document.Markdown).LengthInTextElements} 字    {document.Markdown.Count(c => c == '\n') + 1} 行    {ImageService.References(document.Markdown).Count} 张图片    {MermaidBlocks().Length} 个 Mermaid    ·    {themeLabel.Text}    ·    {document.Name}";
+        if (operation is not null || openingDocument) return;
+        var counts = measuredContent is null ? "正在统计…" : $"{measuredContent.CharacterCount} 字    {measuredContent.LineCount} 行    {measuredContent.ImageCount} 张图片    {measuredContent.MermaidCount} 个 Mermaid";
+        status.Text = $"{(document.IsDirty ? "未保存" : document.FilePath is null ? "示例文档" : "已保存")}    {counts}    ·    {customTheme ?? settings.ThemeTitle}    ·    {document.Name}";
     }
     private FencedCodeBlock[] MermaidBlocks() => Markdown.Parse(document.Markdown, MarkdownRenderer.Pipeline).Descendants<FencedCodeBlock>().Where(x => string.Equals(x.Info, "mermaid", StringComparison.OrdinalIgnoreCase)).ToArray();
     private Task RenderAsync()
@@ -247,17 +276,38 @@ public sealed partial class MainWindow : Window
     }
     private async Task RenderLoopAsync()
     {
+        // Yield so renderTask is assigned before another edit queues work.
+        await Task.Yield();
+        // A missing preview runtime must not prevent editing, statistics or saving.
+        // Startup reports initialization failures once in the native UI.
+        try { await previewInitialization; } catch { }
         while (renderPending)
         {
             renderPending = false;
+            var markdown = document.Markdown; var path = document.FilePath;
             var css = customCss ?? Core.Resources.Read((AppSettings.Themes.ContainsKey(settings.Theme) ? settings.Theme : "default") + ".css");
-            await preview.RenderAsync(MarkdownRenderer.Render(document.Markdown, new(css, settings.ImagePrefix, settings.AssetsDirectory)), document.FilePath);
+            var options = new RenderOptions(css, settings.ImagePrefix, settings.AssetsDirectory);
+            var content = markdown == measuredMarkdown && options == measuredOptions && measuredContent is not null
+                ? measuredContent : await Task.Run(() => MarkdownRenderer.RenderContent(markdown, options));
+            // A newer edit/open wins; never display or cache an outdated document.
+            if (markdown != document.Markdown || path != document.FilePath || renderPending) { renderPending = true; continue; }
+            measuredContent = content; measuredMarkdown = markdown; measuredOptions = options;
+            var reset = resetPreviewScroll; resetPreviewScroll = false;
+            if (preview.Ready) await preview.RenderAsync(content, path, reset);
+            RefreshStatus();
         }
     }
-    private void SyncEditor() { editor.Text = document.Markdown; RefreshStatus(); }
+    private void SyncEditor()
+    {
+        syncingEditor = true;
+        try { editor.Text = document.Markdown; }
+        finally { syncingEditor = false; }
+        RefreshStatus();
+    }
     private void Notify(string message, bool error = false)
     {
         notification.Message = message; notification.Severity = error ? InfoBarSeverity.Error : InfoBarSeverity.Success; notification.IsOpen = true;
+        toastTimer.Stop(); if (!error) toastTimer.Start();
         logs.Insert(0, $"[{DateTime.Now:HH:mm:ss}] {message}"); if (logs.Count > 200) logs.RemoveAt(logs.Count - 1);
     }
     private async Task Safe(Func<Task> action)
@@ -269,12 +319,13 @@ public sealed partial class MainWindow : Window
     }
     private async Task RunAsync(string label, Func<CancellationToken, Task> action)
     {
-        if (operation is not null) return;
+        if (operation is not null || openingDocument) return;
         using var cancellation = new CancellationTokenSource(); operation = cancellation;
         editor.IsReadOnly = true; foreach (var control in busyControls) control.IsEnabled = false;
+        activityRing.IsActive = true; activityRing.Visibility = Visibility.Visible;
         cancelButton.Visibility = Visibility.Visible; status.Text = label + "…";
         try { await action(cancellation.Token); Notify(label + "完成。"); }
-        finally { operation = null; editor.IsReadOnly = false; foreach (var control in busyControls) control.IsEnabled = true; cancelButton.Visibility = Visibility.Collapsed; RefreshStatus(); }
+        finally { operation = null; editor.IsReadOnly = false; foreach (var control in busyControls) control.IsEnabled = true; cancelButton.Visibility = Visibility.Collapsed; activityRing.IsActive = false; activityRing.Visibility = Visibility.Collapsed; RefreshStatus(); }
     }
     private async Task<bool> ConfirmDiscardAsync()
     {
@@ -287,15 +338,15 @@ public sealed partial class MainWindow : Window
     }
     private async Task NewAsync()
     {
-        if (operation is not null || dialogOpen || !await ConfirmDiscardAsync()) return;
-        document.New(); summaryCard.Visibility = Visibility.Collapsed; summaryText.Text = ""; SyncEditor(); editor.SelectionStart = 0; await RenderAsync();
+        if (operation is not null || openingDocument || dialogOpen || !await ConfirmDiscardAsync()) return;
+        document.New(); resetPreviewScroll = true; summaryCard.Visibility = Visibility.Collapsed; summaryText.Text = ""; SyncEditor(); editor.SelectionStart = 0; await RenderAsync();
     }
     private async Task OpenAsync()
     {
-        if (operation is not null || dialogOpen || !await ConfirmDiscardAsync()) return;
+        if (operation is not null || openingDocument || dialogOpen || !await ConfirmDiscardAsync()) return;
         var picker = new FileOpenPicker(); picker.FileTypeFilter.Add(".md"); picker.FileTypeFilter.Add(".markdown"); InitPicker(picker);
         var file = await picker.PickSingleFileAsync(); if (file is null) return;
-        document.Open(file.Path); summaryCard.Visibility = Visibility.Collapsed; summaryText.Text = ""; SyncEditor(); editor.SelectionStart = 0; await RenderAsync(); Notify("已打开 " + document.Name);
+        await LoadDocumentAsync(file.Path);
     }
     private async Task<bool> SaveAsync(bool saveAs = false)
     {

@@ -1,6 +1,6 @@
 # WxTyper
 
-WxTyper 是面向微信公众号文章排版的原生 Markdown 编辑器。macOS 使用 SwiftUI、AppKit 与 WebKit；Windows 使用 WinUI 3 与 WebView2。两端使用相同的四套排版主题，Windows 版对照 SwiftUI 版提供分栏编辑、右侧工具栏和文章处理功能。
+WxTyper 是面向微信公众号文章排版的原生 Markdown 编辑器。macOS 使用 SwiftUI、AppKit 与 WebKit；Windows 使用 WinUI 3 与 WebView2。两端使用相同的四套排版主题，Windows 版对照 SwiftUI 版提供分栏编辑、悬浮工具栏和文章处理功能。
 
 ## 功能
 
@@ -49,7 +49,9 @@ $env:HTTP_PROXY="http://127.0.0.1:7897"
 $env:HTTPS_PROXY="http://127.0.0.1:7897"
 ```
 
-Windows 快捷键：`Ctrl+N` 新建、`Ctrl+O` 打开、`Ctrl+S` 保存、`Ctrl+Shift+S` 另存为、`Ctrl+Alt+C` 复制微信 HTML、`Ctrl+Shift+R` 生成摘要、`Ctrl+,` 设置。右键保存按钮也可新建或另存为；分栏中间的分隔条可拖动。新建、打开和关闭前会提示保存未保存的内容。AI 和图片操作期间可从状态栏取消。
+菜单直接集成在窗口最顶部的标题栏，与应用名、文档名和窗口按钮同一行；文档名及其右侧空白区域可拖动窗口。菜单提供 File（新建、打开／导入 Markdown、保存、另存为、导入 CSS、设置、退出）、View（视图、主题与悬浮工具栏开关）和 Tools（文章与图片工具），覆盖全部工具栏功能。右侧悬浮工具栏每次启动默认隐藏，可从“视图 → 显示悬浮工具栏”打开，也可用栏顶的关闭按钮收起；显示时覆盖在内容上方，不占用编辑或预览宽度。Windows 快捷键：`Ctrl+N` 新建、`Ctrl+O` 打开、`Ctrl+S` 保存、`Ctrl+Shift+S` 另存为、`Ctrl+Alt+C` 复制微信 HTML、`Ctrl+Shift+R` 生成摘要、`Ctrl+,` 设置。右键保存按钮也可新建或另存为；分栏中间的分隔条可拖动。新建、打开和关闭前会提示保存未保存的内容。AI 和图片操作期间可从状态栏取消。
+
+预览在普通编辑时局部更新内容并保留未变化的图片和 Mermaid 图。本地图片相对 Markdown 文件所在目录解析，支持 `assets/image.png`、`./assets/image.png`、中文和带空格的路径。切换文章目录、另存到其他目录或新建文档时，先刷新 WebView2 的本地映射和空白预览外壳，确保图片来自当前文章；正文无需等待远程图片。预览顶部显示转圈、图片完成数量、进度条和失败信息。编辑时保留预览滚动位置，打开另一篇文章时回到顶部。Windows 文本框的 CR、CRLF 和 LF 换行统一处理，打开文件不会因换行转换被误判为修改。
 
 Windows 设置存放在 `%LOCALAPPDATA%\WxTyper`；`settings.json` 不包含密钥，`secrets.bin` 使用 DPAPI 当前用户加密。自定义 CSS 仅用于当前会话。开发验证可以通过 `WXTYPER_DATA_DIR` 指定独立设置和 WebView2 缓存目录。
 
@@ -64,6 +66,17 @@ dotnet run --project Native/Windows/WxTyper.Tests/WxTyper.Tests.csproj
 ```
 
 检查涵盖 Markdown/主题、脚注、图片引用与替换、UTF-8 保存、DPAPI、OpenAI 请求及微信上传缓存。网络服务检查使用模拟 HTTP 响应，真实账号权限、额度、IP 白名单与公众号粘贴效果仍需用自己的账号验收。
+
+预览的浏览器回归脚本为 `Scripts/preview-browser-tests.cjs`，需要 Node.js、模块路径中可用的 Playwright，以及本机 Microsoft Edge。先创建 `test-results` 目录，再执行：
+
+```powershell
+dotnet run --project Native/Windows/WxTyper.Tests/WxTyper.Tests.csproj -- --preview-fixture test-results/preview-after.html
+node Scripts/preview-browser-tests.cjs
+```
+
+该检查使用受控慢图和模拟 Mermaid 响应，验证正文先显示、图片节点复用、加载进度、滚动位置、失败状态以及复制／PNG 导出桥接。若提供旧版 `test-results/preview-before.html`，还会记录慢图加载的前后耗时；这是受控条件下的页面测试，不代表所有文档的实际网络速度。
+
+本地图片映射需要在实际 WebView2 中验证，普通浏览器无法覆盖这个边界。运行 `./Scripts/test-windows-preview.ps1` 可检查首次打开、目录切换、中文／空格路径、图片复用和新建后的目录隔离；可选 `-ArticlePath 'C:\path\article.md'` 只读验证指定文章的全部图片。测试使用独立缓存，结果写入 `test-results/preview-native-*/result.json`。
 
 ## macOS 开发
 
